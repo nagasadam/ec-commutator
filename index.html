@@ -119,6 +119,16 @@ td[colspan]:only-child{color:var(--mut);text-align:center;padding:30px 14px;whit
 @media(max-width:600px){.chc{padding:14px 12px 10px}.hb{grid-template-columns:minmax(84px,34%) 1fr auto}.hb .l{white-space:normal;line-height:1.25;font-size:12.5px}}
 .tabs{max-width:100%}
 @media(max-width:700px){.tabs{display:flex;flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none}.tabs::-webkit-scrollbar{display:none}.tabs button.b{flex:none;white-space:nowrap}}
+
+.paper{background:#fff;color:#111;border-radius:8px;padding:20px 18px;font-size:12.5px;box-shadow:0 2px 14px rgba(0,0,0,.28)}
+.paper .ph1{display:flex;justify-content:space-between;gap:10px;align-items:baseline;font-size:15px}.paper .ph1 span{font-size:11px;color:#556}
+.paper .ph2{margin-top:8px;font-size:12px;color:#445}.paper .ph3{font-size:16px;font-weight:700;margin-top:2px}.paper .ph4{font-size:12px;color:#445;margin:4px 0 12px}
+.paper table{width:100%;border-collapse:collapse;border-spacing:0;background:none;border:0}
+.paper th{background:#eef1f4!important;color:#111!important;text-align:left;font-weight:600;font-size:12px;padding:6px 8px;border-bottom:1px solid #cfd6dd}
+.paper td{color:#111!important;padding:6px 8px;border-bottom:1px solid #e6eaee;vertical-align:top;background:none!important}
+.paper .n{text-align:right;font-family:'JetBrains Mono',ui-monospace,monospace;white-space:nowrap;font-size:12px}
+.paper tr.ob td{background:#f6f8fa!important}
+@media(max-width:600px){.paper{padding:12px 6px}#ov .card:has(.paper){padding:12px 10px}.paper .lr{display:none}.paper table{zoom:.8}.paper td:nth-child(2){white-space:normal;overflow-wrap:anywhere;min-width:70px;max-width:120px}.paper .ph1,.paper .ph2,.paper .ph3,.paper .ph4{padding:0 4px}.paper th,.paper td{padding:5px 3px;font-size:11.5px}.paper .n{font-size:11px;letter-spacing:-.02em}.paper .ph1{font-size:14px}.paper .ph3{font-size:15px}}
 /* KPIs */
 .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px;margin-bottom:22px}
 .kpis div{position:relative;overflow:hidden;background:var(--card);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);border:1px solid var(--line);border-radius:14px;padding:16px 18px;box-shadow:var(--sh);min-width:0}
@@ -1840,6 +1850,14 @@ function addBank() {
 
 /* ======== Ledgers and statements ======== */
 let LG = { id: '', from: '', to: '' };
+const sd = d => (d && d.length >= 10 ? d.slice(8, 10) + '-' + d.slice(5, 7) + '-' + d.slice(2, 4) : d || ''),
+  lineTxt = (b, ls) =>
+    ls
+      .map(l => {
+        const i = itm(b, l.item);
+        return i.name + ' x ' + fq(l.qty) + (i.unit ? ' ' + i.unit : '');
+      })
+      .join(', ');
 function ledgers(b) {
   const L = [],
     get = (id, name, group) =>
@@ -1864,12 +1882,12 @@ function ledgers(b) {
     const t = tot(b, v);
     get('c:' + v.cu.toLowerCase(), v.cu, 'Customers').e.push({
       d: v.dt,
-      p: 'Sales ' + v.no,
+      p: 'Sales ' + v.no + ': ' + lineTxt(b, v.lines),
       lr: v.lr ? v.lr + (v.lrd ? ' (' + v.lrd + ')' : '') : '',
       dr: t.g,
       cr: 0
     });
-    sa.e.push({ d: v.dt, p: v.no + ' – ' + v.cu, dr: 0, cr: t.t });
+    sa.e.push({ d: v.dt, p: v.no + ' – ' + v.cu + ': ' + lineTxt(b, v.lines), dr: 0, cr: t.t });
     if (t.x > 0) go.e.push({ d: v.dt, p: v.no + ' – ' + v.cu, dr: 0, cr: t.x });
   });
   b.pur.forEach(p => {
@@ -1882,7 +1900,7 @@ function ledgers(b) {
       dr: 0,
       cr: t * (1 + pg(p))
     });
-    pa.e.push({ d: p.dt, p: p.sup + ' – ' + n, dr: t, cr: 0 });
+    pa.e.push({ d: p.dt, p: p.sup + ' – ' + n + ', ' + p.qty + (i.unit ? ' ' + i.unit : ''), dr: t, cr: 0 });
     if (pg(p)) gi.e.push({ d: p.dt, p: p.sup + ' – ' + n, dr: t * pg(p), cr: 0 });
   });
   b.sr.forEach(r => {
@@ -1892,11 +1910,11 @@ function ledgers(b) {
       x = v.co === false ? 0 : n * 0.18;
     get('c:' + v.cu.toLowerCase(), v.cu, 'Customers').e.push({
       d: r.dt,
-      p: `Credit note ${r.no} (goods returned against ${v.no})`,
+      p: `Credit note ${r.no}: ${lineTxt(b, r.lines)} returned (against ${v.no})`,
       dr: 0,
       cr: n + x
     });
-    sa.e.push({ d: r.dt, p: `${r.no} – ${v.cu} (return)`, dr: n, cr: 0 });
+    sa.e.push({ d: r.dt, p: `${r.no} – ${v.cu}: ${lineTxt(b, r.lines)} (return)`, dr: n, cr: 0 });
     if (x > 0) go.e.push({ d: r.dt, p: `${r.no} – ${v.cu} (return)`, dr: x, cr: 0 });
   });
   b.prr.forEach(r => {
@@ -1906,11 +1924,11 @@ function ledgers(b) {
       x = n * pg(p);
     get('s:' + p.sup.toLowerCase(), p.sup, 'Suppliers').e.push({
       d: r.dt,
-      p: `Debit note ${r.no} (material returned)`,
+      p: `Debit note ${r.no}: ${itm(b, p.item).name} x ${fq(r.qty)}${itm(b, p.item).unit ? ' ' + itm(b, p.item).unit : ''} (material returned)`,
       dr: n + x,
       cr: 0
     });
-    pa.e.push({ d: r.dt, p: `${r.no} – ${p.sup} (return)`, dr: 0, cr: n });
+    pa.e.push({ d: r.dt, p: `${r.no} – ${p.sup}: ${itm(b, p.item).name} x ${fq(r.qty)} (return)`, dr: 0, cr: n });
     if (x > 0) gi.e.push({ d: r.dt, p: `${r.no} – ${p.sup} (return)`, dr: 0, cr: x });
   });
   b.exp.forEach(x => {
@@ -2078,89 +2096,241 @@ function vLed(b) {
    )
    .join('')}</select></label>
  <label>From<input type="date" value="${LG.from}" onchange="LG.from=this.value;R()"></label><label>To<input type="date" value="${LG.to}" onchange="LG.to=this.value;R()"></label></div>
- <div class="row"><button class="b" onclick="dlStmt()">Download this statement (CSV)</button><button class="b g" onclick="dlAll()">Download all ledgers (CSV)</button></div><p id="dlm" style="color:var(--mut);margin:0 0 8px"></p>
+ <div class="row"><button class="b" onclick="ledPreview()">Preview</button><button class="b" onclick="dlPdf()">Download PDF</button><button class="b g" onclick="dlPdfAll()">All ledgers (PDF)</button></div><p id="dlm" style="color:var(--mut);margin:0 0 8px"></p>
  <div class="tw"><table><tr><th>Date</th><th>Particulars</th>${lrc ? '<th>LR no.</th>' : ''}<th class="n">Debit</th><th class="n">Credit</th><th class="n">Balance</th></tr><tr><td></td><td>Opening balance</td>${lrc ? '<td></td>' : ''}<td></td><td></td><td class="n">${bs(st.open)}</td></tr>
- ${st.rows.map(x => `<tr><td>${x.d}</td><td>${esc(x.p)}</td>${lrc ? `<td>${esc(x.lr || '')}</td>` : ''}<td class="n">${x.dr ? fmt(x.dr) : ''}</td><td class="n">${x.cr ? fmt(x.cr) : ''}</td><td class="n">${bs(x.bal)}</td></tr>`).join('')}
+ ${st.rows.map(x => `<tr><td>${sd(x.d)}</td><td>${esc(x.p)}</td>${lrc ? `<td>${esc(x.lr || '')}</td>` : ''}<td class="n">${x.dr ? fmt(x.dr) : ''}</td><td class="n">${x.cr ? fmt(x.cr) : ''}</td><td class="n">${bs(x.bal)}</td></tr>`).join('')}
  <tr><th></th><th>Closing balance</th>${lrc ? '<th></th>' : ''}<th class="n">${fmt(st.tdr)}</th><th class="n">${fmt(st.tcr)}</th><th class="n">${bs(st.close)}</th></tr></table></div></div>`;
 }
-const q = v => '"' + String(v).replace(/"/g, '""') + '"',
-  num = n => (+n).toFixed(2),
-  sb = n => num(Math.abs(n)) + (n > 0.004 ? ' Dr' : n < -0.004 ? ' Cr' : '');
+
+/* ======== Ledger preview and PDF ======== */
+const HW = [278,278,355,556,556,889,667,191,333,333,389,584,278,333,278,278,556,556,556,556,556,556,556,556,556,556,278,278,584,584,584,556,1015,667,667,722,722,667,611,778,722,278,500,667,556,833,722,778,667,778,722,667,611,722,667,944,667,667,611,278,278,278,469,556,333,556,556,500,556,556,278,556,556,222,222,500,222,833,556,556,556,556,333,500,278,556,500,722,500,500,500,334,260,334,584],
+  HBW = [278,333,474,556,556,889,722,238,333,333,389,584,278,333,278,278,556,556,556,556,556,556,556,556,556,556,333,333,584,584,584,611,975,722,722,722,722,667,611,778,722,278,556,722,611,833,722,778,667,778,722,667,611,722,667,944,667,667,611,333,278,333,584,556,333,556,611,556,611,556,333,611,611,278,278,556,278,889,611,611,611,611,389,556,333,611,556,778,556,556,500,389,280,389,584];
+const pdfT = t =>
+  String(t == null ? '' : t)
+    .replace(/₹/g, 'Rs.')
+    .replace(/[–—−]/g, '-')
+    .replace(/[‘’]/g, "'")
+    .replace(/[“”]/g, '"')
+    .replace(/[^\x20-\x7e]/g, '?');
+const tw = (t, sz, b) => ([...t].reduce((a, c) => a + (b ? HBW : HW)[c.charCodeAt(0) - 32], 0) * sz) / 1000;
+function pdfWrap(t, w, sz, b) {
+  t = pdfT(t);
+  const out = [];
+  let line = '';
+  t.split(' ').forEach(word => {
+    while (tw(word, sz, b) > w) {
+      let k = word.length;
+      while (k > 1 && tw(word.slice(0, k), sz, b) > w) k--;
+      if (line) {
+        out.push(line);
+        line = '';
+      }
+      out.push(word.slice(0, k));
+      word = word.slice(k);
+    }
+    const tryL = line ? line + ' ' + word : word;
+    if (tw(tryL, sz, b) <= w) line = tryL;
+    else {
+      out.push(line);
+      line = word;
+    }
+  });
+  if (line || !out.length) out.push(line);
+  return out;
+}
+function PDFDoc(foot) {
+  const pg = [],
+    P = { W: 595, H: 842, M: 40, y: 0, foot: pdfT(foot) };
+  let cur = null;
+  const e = t => t.replace(/[\\()]/g, m => '\\' + m);
+  P.page = () => {
+    cur = [];
+    pg.push(cur);
+    P.y = P.H - P.M;
+  };
+  P.t = (x, y, t, sz, b, al) => {
+    t = pdfT(t);
+    if (al == 'r') x -= tw(t, sz, b);
+    else if (al == 'c') x -= tw(t, sz, b) / 2;
+    cur.push(`BT /F${b ? 2 : 1} ${sz} Tf ${x.toFixed(2)} ${y.toFixed(2)} Td (${e(t)}) Tj ET`);
+  };
+  P.ln = (x1, y1, x2, y2, wd, g) => cur.push(`${g} G ${wd} w ${x1} ${y1} m ${x2} ${y2} l S`);
+  P.rc = (x, y, w, h, g) => cur.push(`${g} g ${x} ${y} ${w} ${h} re f 0 g`);
+  P.out = () => {
+    const n = pg.length;
+    pg.forEach((c, i) => {
+      cur = c;
+      P.ln(P.M, 36, P.W - P.M, 36, 0.5, 0.75);
+      P.t(P.M, 24, P.foot, 8, 0);
+      P.t(P.W - P.M, 24, 'Page ' + (i + 1) + ' of ' + n, 8, 0, 'r');
+    });
+    const o = [];
+    o[1] = '<< /Type /Catalog /Pages 2 0 R >>';
+    o[2] = `<< /Type /Pages /Kids [${pg.map((_, i) => 5 + i * 2 + ' 0 R').join(' ')}] /Count ${n} >>`;
+    o[3] = '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>';
+    o[4] = '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>';
+    pg.forEach((c, i) => {
+      const st = c.join('\n');
+      o[5 + i * 2] = `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${P.W} ${P.H}] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents ${6 + i * 2} 0 R >>`;
+      o[6 + i * 2] = `<< /Length ${st.length} >>\nstream\n${st}\nendstream`;
+    });
+    let out = '%PDF-1.4\n';
+    const off = [];
+    for (let i = 1; i < o.length; i++) {
+      off[i] = out.length;
+      out += i + ' 0 obj\n' + o[i] + '\nendobj\n';
+    }
+    const x = out.length;
+    out += 'xref\n0 ' + o.length + '\n0000000000 65535 f \n' + off.slice(1).map(v => String(v).padStart(10, '0') + ' 00000 n \n').join('') + 'trailer\n<< /Size ' + o.length + ' /Root 1 0 R >>\nstartxref\n' + x + '\n%%EOF';
+    return new Blob([out], { type: 'application/pdf' });
+  };
+  P.page();
+  return P;
+}
+const nm2 = n => fmt(n).replace('₹', ''),
+  bs2 = n => bs(n).replace('₹', '');
+function pdfLedger(P, b, l, st, from, to) {
+  const lrc = l.group == 'Customers',
+    X0 = P.M,
+    CW = P.W - 2 * P.M,
+    wd = 44,
+    wl = lrc ? 62 : 0,
+    wn = 66,
+    wb = 84,
+    wp = CW - wd - wl - wn * 2 - wb,
+    xp = X0 + wd,
+    xl = xp + wp,
+    xd = xl + wl + wn,
+    xc = xd + wn,
+    xb = X0 + CW;
+  const SZ = 8.5;
+  const head = cont => {
+    if (!cont) {
+      P.t(X0, P.y - 14, b.name, 15, 1);
+      P.t(xb, P.y - 12, 'Generated ' + today(), 8.5, 0, 'r');
+      P.t(X0, P.y - 30, 'Ledger statement', 10, 0);
+      P.t(X0, P.y - 48, l.name, 13, 1);
+      P.t(X0, P.y - 63, l.group + '   |   Period: ' + (from || 'start') + ' to ' + (to || today()), 9, 0);
+      P.y -= 78;
+    } else {
+      P.t(X0, P.y - 10, l.name + ' (continued)', 10, 1);
+      P.y -= 22;
+    }
+    P.rc(X0, P.y - 18, CW, 18, 0.93);
+    const ty = P.y - 12.5;
+    P.t(X0 + 4, ty, 'Date', 8.5, 1);
+    P.t(xp + 4, ty, 'Particulars', 8.5, 1);
+    if (lrc) P.t(xl + 4, ty, 'LR no.', 8.5, 1);
+    P.t(xd, ty, 'Debit', 8.5, 1, 'r');
+    P.t(xc, ty, 'Credit', 8.5, 1, 'r');
+    P.t(xb - 4, ty, 'Balance', 8.5, 1, 'r');
+    P.y -= 18;
+  };
+  const row = (d, pt, lr, dr, cr, bal, bold, z) => {
+    const lines = pdfWrap(pt, wp - 8, SZ, bold),
+      h = lines.length * 10.5 + 6;
+    if (P.y - h < 50) {
+      P.page();
+      head(true);
+    }
+    if (z) P.rc(X0, P.y - h, CW, h, 0.975);
+    const ty = P.y - 10;
+    P.t(X0 + 4, ty, sd(d), SZ, bold);
+    lines.forEach((t, i) => P.t(xp + 4, ty - i * 10.5, t, SZ, bold));
+    if (lrc && lr) P.t(xl + 4, ty, pdfWrap(lr, wl - 8, SZ)[0], SZ, 0);
+    if (dr) P.t(xd, ty, dr, SZ, bold, 'r');
+    if (cr) P.t(xc, ty, cr, SZ, bold, 'r');
+    if (bal) P.t(xb - 4, ty, bal, SZ, bold, 'r');
+    P.ln(X0, P.y - h, X0 + CW, P.y - h, 0.4, 0.88);
+    P.y -= h;
+  };
+  if (P.y < P.H - P.M - 1 || true) head(false);
+  row('', 'Opening balance', '', '', '', bs2(st.open), 1, 0);
+  st.rows.forEach((x, i) => row(x.d, x.p, x.lr, x.dr ? nm2(x.dr) : '', x.cr ? nm2(x.cr) : '', bs2(x.bal), 0, i % 2));
+  P.ln(X0, P.y, X0 + CW, P.y, 0.8, 0.3);
+  row('', 'Closing balance', '', nm2(st.tdr), nm2(st.tcr), bs2(st.close), 1, 0);
+}
+function pdfOne(b, l) {
+  const st = stmt(l, LG.from, LG.to),
+    P = PDFDoc(b.name + ' - ledger statement');
+  pdfLedger(P, b, l, st, LG.from, LG.to);
+  return P.out();
+}
+function dlPdf() {
+  const b = B(),
+    l = ledgers(b).find(x => x.id == LG.id);
+  dlFile((slug(b.name) || 'books') + '-ledger-' + (slug(l.name) || 'ledger') + '-' + per() + '.pdf', pdfOne(b, l));
+}
+function dlPdfAll() {
+  const b = B(),
+    P = PDFDoc(b.name + ' - all ledgers');
+  let first = true;
+  ledgers(b).forEach(l => {
+    const st = stmt(l, LG.from, LG.to);
+    if (!st.rows.length && Math.abs(st.open) < 0.005) return;
+    if (!first) P.page();
+    first = false;
+    pdfLedger(P, b, l, st, LG.from, LG.to);
+  });
+  if (first) {
+    const m = $('#dlm');
+    if (m) m.textContent = 'No ledger has any entries in this period.';
+    return;
+  }
+  dlFile((slug(b.name) || 'books') + '-all-ledgers-' + per() + '.pdf', P.out());
+}
+function ledPreview() {
+  const b = B(),
+    l = ledgers(b).find(x => x.id == LG.id),
+    st = stmt(l, LG.from, LG.to),
+    lrc = l.group == 'Customers';
+  const body = st.rows
+    .map(
+      x =>
+        `<tr><td>${sd(x.d)}</td><td>${esc(x.p)}</td>${lrc ? `<td class="lr">${esc(x.lr || '')}</td>` : ''}<td class="n">${x.dr ? nm2(x.dr) : ''}</td><td class="n">${x.cr ? nm2(x.cr) : ''}</td><td class="n">${bs2(x.bal)}</td></tr>`
+    )
+    .join('');
+  mdl(`<div class="noprint" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px"><button class="b" onclick="dlPdf()">Download PDF</button><button class="b g" onclick="print()">Print</button><button class="b g" onclick="mdlClose()">Close</button></div><p id="dlm2" class="noprint" style="color:var(--mut);margin:0 0 10px;font-size:13px"></p>
+ <div class="paper"><div class="ph1"><b>${esc(b.name)}</b><span>Generated ${today()}</span></div><div class="ph2">Ledger statement</div><div class="ph3">${esc(l.name)}</div><div class="ph4">${esc(l.group)} &nbsp;|&nbsp; Period: ${LG.from || 'start'} to ${LG.to || today()}</div>
+ <div class="tw"><table><tr><th>Date</th><th>Particulars</th>${lrc ? '<th class="lr">LR no.</th>' : ''}<th class="n">Debit</th><th class="n">Credit</th><th class="n">Balance</th></tr><tr class="ob"><td></td><td><b>Opening balance</b></td>${lrc ? '<td class="lr"></td>' : ''}<td></td><td></td><td class="n"><b>${bs2(st.open)}</b></td></tr>${body || `<tr><td colspan="${lrc ? 6 : 5}" style="text-align:center;color:#667">No entries in this period.</td></tr>`}<tr class="ob"><td></td><td><b>Closing balance</b></td>${lrc ? '<td class="lr"></td>' : ''}<td class="n"><b>${nm2(st.tdr)}</b></td><td class="n"><b>${nm2(st.tcr)}</b></td><td class="n"><b>${bs2(st.close)}</b></td></tr></table></div></div>`);
+  const ov = $('#ov');
+  ov.setAttribute('aria-label', 'Statement preview');
+}
 const slug = t =>
   String(t)
     .replace(/[^A-Za-z0-9]+/g, '-')
     .replace(/^-|-$/g, '');
-async function dlFile(name, text) {
-  const m = $('#dlm');
+async function dlFile(name, data, mime) {
+  const say = t => {
+    const m = document.querySelector('#ov #dlm2') || $('#dlm');
+    if (m) m.textContent = t;
+  };
   try {
-    const d = window.claude && (await claude.use('downloads'));
-    if (!d) {
-      m.textContent = 'Downloads are not available in this view.';
+    const d = window.claude && claude.use && (await claude.use('downloads'));
+    if (d) {
+      await d.save({ filename: name, data });
+      say('Saved ' + name);
       return;
     }
-    await d.save({ filename: name, data: text });
-    m.textContent = 'Saved ' + name;
+    const u = URL.createObjectURL(data instanceof Blob ? data : new Blob([data], { type: mime || 'text/csv;charset=utf-8' })),
+      a = document.createElement('a');
+    a.href = u;
+    a.download = name;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(u), 8000);
+    say('Downloaded ' + name + '. Look in your Downloads or Files app.');
   } catch (e) {
-    m.textContent =
+    say(
       e && e.code == 'declined'
         ? 'Download cancelled.'
-        : 'Could not save the file: ' + ((e && e.message) || 'unknown error');
+        : 'Could not save the file: ' + ((e && e.message) || 'unknown error')
+    );
   }
 }
 function per() {
   return (LG.from || 'start') + '-to-' + (LG.to || today());
-}
-function dlStmt() {
-  const b = B(),
-    l = ledgers(b).find(x => x.id == LG.id),
-    st = stmt(l, LG.from, LG.to);
-  const r = [
-    [q(b.name)],
-    [q('Ledger statement: ' + l.name)],
-    [q('Period: ' + (LG.from || 'start') + ' to ' + (LG.to || today()))],
-    [],
-    ['Date', 'Particulars', 'LR no.', 'Debit', 'Credit', 'Balance'].map(q),
-    [q(''), q('Opening balance'), '', '', '', q(sb(st.open))]
-  ];
-  st.rows.forEach(x =>
-    r.push([q(x.d), q(x.p), q(x.lr || ''), x.dr ? num(x.dr) : '', x.cr ? num(x.cr) : '', q(sb(x.bal))])
-  );
-  r.push([q(''), q('Closing balance'), '', num(st.tdr), num(st.tcr), q(sb(st.close))]);
-  dlFile(
-    slug(b.name) + '-ledger-' + slug(l.name) + '-' + per() + '.csv',
-    r.map(x => x.join(',')).join('\r\n')
-  );
-}
-function dlAll() {
-  const b = B(),
-    r = [['Ledger', 'Group', 'Date', 'Particulars', 'LR no.', 'Debit', 'Credit', 'Balance'].map(q)];
-  ledgers(b).forEach(l => {
-    const st = stmt(l, LG.from, LG.to);
-    r.push([q(l.name), q(l.group), q(''), q('Opening balance'), '', '', '', q(sb(st.open))]);
-    st.rows.forEach(x =>
-      r.push([
-        q(l.name),
-        q(l.group),
-        q(x.d),
-        q(x.p),
-        q(x.lr || ''),
-        x.dr ? num(x.dr) : '',
-        x.cr ? num(x.cr) : '',
-        q(sb(x.bal))
-      ])
-    );
-    r.push([
-      q(l.name),
-      q(l.group),
-      q(''),
-      q('Closing balance'),
-      '',
-      num(st.tdr),
-      num(st.tcr),
-      q(sb(st.close))
-    ]);
-  });
-  dlFile(slug(b.name) + '-all-ledgers-' + per() + '.csv', r.map(x => x.join(',')).join('\r\n'));
 }
 
 /* ======== Customers and suppliers page ======== */
