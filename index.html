@@ -134,6 +134,15 @@ td[colspan]:only-child{color:var(--mut);text-align:center;padding:30px 14px;whit
 .kpis div{position:relative;overflow:hidden;background:var(--card);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);border:1px solid var(--line);border-radius:14px;padding:16px 18px;box-shadow:var(--sh);min-width:0}
 .kpis div::after{content:'';position:absolute;left:18px;right:18px;top:0;height:2px;border-radius:0 0 2px 2px;background:var(--accg);box-shadow:0 0 14px var(--ring)}
 .kpis small{color:var(--mut);display:block;font-size:12.5px}
+.pins{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px}
+.pin{border:1px solid var(--line);border-radius:14px;padding:14px;background:var(--muted);min-width:0}
+.pin.on{border-color:var(--acc);box-shadow:0 0 0 2px var(--ring)}
+.pin b{display:block;font-size:16px;overflow-wrap:anywhere}
+.pin .bl{margin:6px 0 8px;font-weight:600}
+.pin small{display:block;color:var(--mut);margin-bottom:8px}
+.pin .pr{display:flex;gap:8px;flex-wrap:wrap}
+.pb{background:none;border:0;cursor:pointer;font-size:18px;line-height:1;padding:4px 6px;color:var(--mut)}
+.pb.on{color:var(--warn)}
 .kpis b{display:block;margin-top:6px;font-weight:600;font-size:22px;line-height:1.2;letter-spacing:-.04em;overflow-wrap:anywhere}
 .sync{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--mut);padding:6px 10px;border:1px solid var(--line);border-radius:99px;background:var(--muted);align-self:flex-start}
 .sync::before{content:'';width:7px;height:7px;border-radius:50%;background:var(--mut);flex:none}
@@ -251,7 +260,9 @@ let S,
   payPur = '',
   PR = { fg: '', qty: 100 },
   D = D0(),
-  PT = 'cust';
+  PT = 'cust',
+  cgSel = '',
+  cgF = 'all';
 function D0() {
   return {
     cu: '',
@@ -327,6 +338,7 @@ function fixBiz(b) {
   b.sr = b.sr || [];
   b.prr = b.prr || [];
   b.rej = b.rej || [];
+  b.pp = b.pp || [];
   b.exp = b.exp || [];
   b.inv
     .filter(v => v.co === false && !v.no.startsWith('BILL-'))
@@ -365,6 +377,7 @@ function mk(name) {
     sr: [],
     prr: [],
     rej: [],
+    pp: [],
     cashOpen: 0,
     gpayOpen: 0
   };
@@ -559,7 +572,7 @@ function R() {
     pro: vPro,
     pur: vPur,
     ret: vRet,
-    exp: vExp,
+    exp: b => vExp(b) + vCg(b),
     rep: vRep,
     par: vPar,
     led: vLed,
@@ -614,6 +627,7 @@ function doReset() {
   D = D0();
   tab = 'inv';
   bankSel = '';
+  cgSel = '';
   payInv = '';
   payPur = '';
   LG = { id: '', from: '', to: '' };
@@ -1735,6 +1749,124 @@ function vBank(b) {
  <div class="row" style="margin-top:12px"><label>Account name<input id="bn"></label><label>Opening balance (₹)<input id="bo" type="number" value="0"></label><button class="b g" onclick="addBank()">Add bank account</button></div><div class="row"><label>Opening cash in hand (₹)<input id="co" type="number" min="0" value="${b.cashOpen || 0}"></label><button class="b g" onclick="setCash()">Set opening cash</button><label>Opening GPay balance (₹)<input id="go" type="number" min="0" value="${b.gpayOpen || 0}"></label><button class="b g" onclick="setGpay()">Set opening GPay</button></div></div>
  ${k ? `<div class="card"><h2>Statement – ${esc(k.name)}</h2><div class="tw"><table><tr><th>Date</th><th>Details</th><th class="n">Amount</th><th></th></tr><tr><td></td><td>Opening balance</td><td class="n">${fmt(k.open)}</td><td></td></tr>${stm.map(t => `<tr><td>${t.dt}</td><td>${esc(lab(t))}</td><td class="n ${t.amt < 0 ? 'unpaid' : ''}">${fmt(t.amt)}</td><td>${t.exp ? '' : ACT('Tx', t.id)}</td></tr>`).join('')}<tr><th></th><th>Balance</th><th class="n">${fmt(bal(b, k))}</th><th></th></tr></table></div></div>` : ''}`;
 }
+
+/* ======== Cash & GPay: money received from and paid to people ======== */
+const cgWho = (b, t) =>
+    t.inv
+        ? (b.inv.find(v => v.id == t.inv) || {}).cu || ''
+        : t.pur
+          ? (b.pur.find(p => p.id == t.pur) || {}).sup || ''
+          : t.party
+            ? ((t.party == 'c' ? b.cust : b.sup).find(x => x.id == t.pid) || {}).name || ''
+            : t.exp
+              ? (b.exp.find(x => x.id == t.exp) || {}).payee || ''
+              : '',
+  cgLab = (b, t) =>
+    t.inv
+        ? 'Receipt ' + ((b.inv.find(v => v.id == t.inv) || {}).no || '')
+        : t.pur
+          ? 'Payment for purchase'
+          : t.party
+            ? t.party == 'c'
+              ? 'Opening balance receipt'
+              : 'Opening balance payment'
+            : t.exp
+              ? 'Expense: ' + ((b.exp.find(x => x.id == t.exp) || {}).desc || (b.exp.find(x => x.id == t.exp) || {}).cat || '')
+              : '',
+  cgMode = t => (t.bank == 'gpay' ? 'GPay' : 'Cash'),
+  cgRows = b => b.tx.filter(t => isPer(t.bank)).map(t => ({ t, who: cgWho(b, t) })),
+  cgPinned = (b, n) => b.pp.some(p => nk(p.name) == nk(n)),
+  cgBal = d => (Math.abs(d) < 0.005 ? 'Nothing due' : d > 0 ? 'Owes you ' + fmt(d) : 'You owe ' + fmt(-d));
+/* What this person still owes you (customer dues) minus what you still owe them (supplier dues). */
+function cgDue(b, n) {
+  const k = nk(n);
+  return (
+    b.inv.filter(v => nk(v.cu) == k).reduce((s, v) => s + tot(b, v).g - paid(b, v), 0) +
+    b.cust.filter(c => nk(c.name) == k).reduce((s, c) => s + partyDue(b, c, true), 0) -
+    b.pur.filter(p => nk(p.sup) == k).reduce((s, p) => s + totP(p) - paidP(b, p), 0) -
+    b.sup.filter(c => nk(c.name) == k).reduce((s, c) => s + partyDue(b, c, false), 0)
+  );
+}
+function cgPeople(b) {
+  const m = new Map(),
+    add = n => {
+      n = String(n || '').trim();
+      if (n && !m.has(nk(n))) m.set(nk(n), n);
+    };
+  b.pp.forEach(p => add(p.name));
+  cgRows(b).forEach(r => add(r.who));
+  return [...m.values()].sort((a, z) => a.localeCompare(z));
+}
+function cgStat(n, rows) {
+  const r = rows.filter(x => nk(x.who) == nk(n));
+  let inn = 0,
+    out = 0;
+  r.forEach(x => {
+    if (x.t.amt > 0) inn += x.t.amt;
+    else out -= x.t.amt;
+  });
+  return { n, r, inn, out };
+}
+function vCg(b) {
+  const rows = cgRows(b),
+    ppl = cgPeople(b),
+    stats = ppl.map(n => cgStat(n, rows)),
+    pinned = stats.filter(s => cgPinned(b, s.n)),
+    cash = bal(b, cashAcc(b)),
+    gp = bal(b, gpayAcc(b));
+  if (cgSel && !ppl.some(n => nk(n) == nk(cgSel))) cgSel = '';
+  if (!cgSel && pinned[0]) cgSel = pinned[0].n;
+  const sel = stats.find(s => cgSel && nk(s.n) == nk(cgSel)),
+    pin = s =>
+      `<button class="pb ${cgPinned(b, s.n) ? 'on' : ''}" data-n="${esc(s.n)}" onclick="cgPin(this.dataset.n)" title="${cgPinned(b, s.n) ? 'Unpin' : 'Pin'}" aria-label="${cgPinned(b, s.n) ? 'Unpin ' : 'Pin '}${esc(s.n)}" aria-pressed="${cgPinned(b, s.n)}">${cgPinned(b, s.n) ? '★' : '☆'}</button>`,
+    view = s => `<button class="b g" data-n="${esc(s.n)}" onclick="cgPick(this.dataset.n)">View</button>`;
+  let run = 0;
+  const det = sel
+    ? [...sel.r]
+        .sort((a, z) => (a.t.dt < z.t.dt ? -1 : a.t.dt > z.t.dt ? 1 : 0))
+        .map(x => {
+          run += x.t.amt;
+          return `<tr><td>${sd(x.t.dt)}</td><td>${cgMode(x.t)}</td><td>${esc(cgLab(b, x.t))}</td><td class="n">${x.t.amt > 0 ? fmt(x.t.amt) : ''}</td><td class="n">${x.t.amt < 0 ? fmt(-x.t.amt) : ''}</td><td class="n">${fmt(run)}</td><td>${x.t.exp ? '' : ACT('Tx', x.t.id)}</td></tr>`;
+        })
+        .join('')
+    : '';
+  const all = rows
+    .filter(x => cgF == 'all' || x.t.bank == cgF)
+    .sort((a, z) => (a.t.dt < z.t.dt ? 1 : a.t.dt > z.t.dt ? -1 : 0))
+    .slice(0, 40);
+  return `<h2 style="margin:26px 0 12px">Cash & GPay – people${INF('Everyone you have received money from or paid in cash or GPay, taken from your existing invoices, purchases and expenses. These are the same balances shown under Banking. Pin people to see what they owe or are owed and every transaction.')}</h2><div class="kpis" style="grid-template-columns:repeat(auto-fit,minmax(150px,1fr))"><div><small>Cash in hand</small><b>${fmt(cash)}</b></div><div><small>GPay balance</small><b>${fmt(gp)}</b></div><div><small>Received (cash + GPay)</small><b>${fmt(rows.reduce((s, x) => s + Math.max(x.t.amt, 0), 0))}</b></div><div><small>Paid out (cash + GPay)</small><b>${fmt(rows.reduce((s, x) => s + Math.max(-x.t.amt, 0), 0))}</b></div></div>
+
+ <div class="card"><h2>Pinned persons${INF('Pin the people you deal with often. Each shows what they owe you or you owe them, with total cash and GPay in and out.')}</h2>${
+   pinned.length
+     ? `<div class="pins">${pinned.map(s => `<div class="pin ${sel && nk(sel.n) == nk(s.n) ? 'on' : ''}"><div style="display:flex;justify-content:space-between;gap:6px"><b>${esc(s.n)}</b>${pin(s)}</div><div class="bl">${cgBal(cgDue(b, s.n))}</div><small>In ${fmt(s.inn)} · Out ${fmt(s.out)} · ${s.r.length} entr${s.r.length == 1 ? 'y' : 'ies'}</small><div class="pr">${view(s)}</div></div>`).join('')}</div>`
+     : '<p>No one is pinned yet. Tap ☆ next to a person below.</p>'
+ }</div>
+ <div class="card"><h2>All persons</h2>${
+   ppl.length
+     ? `<div class="tw"><table><tr><th></th><th>Name</th><th class="n">In</th><th class="n">Out</th><th>Balance</th><th></th></tr>${stats.map(s => `<tr><td>${pin(s)}</td><td>${esc(s.n)}</td><td class="n">${fmt(s.inn)}</td><td class="n">${fmt(s.out)}</td><td>${cgBal(cgDue(b, s.n))}</td><td>${view(s)}</td></tr>`).join('')}</table></div>`
+     : '<p>No cash or GPay transactions yet. People appear here once a payment is received or made in cash or GPay.</p>'
+ }</div>
+ ${sel ? `<div class="card" id="cgd2"><h2>${esc(sel.n)}${pin(sel)}</h2><div class="kpis" style="margin-bottom:12px"><div><small>Balance</small><b style="font-size:16px">${cgBal(cgDue(b, sel.n))}</b></div><div><small>Received in cash / GPay</small><b>${fmt(sel.inn)}</b></div><div><small>Paid in cash / GPay</small><b>${fmt(sel.out)}</b></div></div><div class="tw"><table><tr><th>Date</th><th>Via</th><th>Details</th><th class="n">In</th><th class="n">Out</th><th class="n">Net</th><th></th></tr>${det || '<tr><td colspan=7>No entries yet.</td></tr>'}</table></div></div>` : ''}
+ <div class="card"><h2>Recent cash and GPay activity</h2><div class="row" style="margin-bottom:8px">${[['all', 'All'], ['cash', 'Cash'], ['gpay', 'GPay']].map(([k, l]) => `<button class="b ${cgF == k ? '' : 'g'}" onclick="cgF='${k}';R()">${l}</button>`).join('')}</div>${
+   all.length
+     ? `<div class="tw"><table><tr><th>Date</th><th>Via</th><th>Person</th><th>Details</th><th class="n">In</th><th class="n">Out</th></tr>${all.map(x => `<tr><td>${sd(x.t.dt)}</td><td>${cgMode(x.t)}</td><td>${esc(x.who)}</td><td>${esc(cgLab(b, x.t))}</td><td class="n">${x.t.amt > 0 ? fmt(x.t.amt) : ''}</td><td class="n">${x.t.amt < 0 ? fmt(-x.t.amt) : ''}</td></tr>`).join('')}</table></div>`
+     : '<p>No cash or GPay entries yet.</p>'
+ }</div>`;
+}
+function cgPick(n) {
+  cgSel = n;
+  R();
+  const e = $('#cgd2');
+  if (e) e.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+function cgPin(n) {
+  const b = B(),
+    i = b.pp.findIndex(p => nk(p.name) == nk(n));
+  if (i >= 0) b.pp.splice(i, 1);
+  else b.pp.push({ id: uid(), name: n });
+  save();
+  R();
+}
 const recvCo = (b, id) =>
     id.startsWith('ob:')
       ? ((b.cust.find(c => c.id == id.slice(3)) || {}).type || 'company') != 'person'
@@ -2568,7 +2700,7 @@ const partyDue = (b, p, isC) =>
   (p.open || 0) -
   b.tx.filter(t => t.party == (isC ? 'c' : 's') && t.pid == p.id).reduce((s, t) => s + Math.abs(t.amt), 0);
 /* Run a change; if it would leave stock or cash below zero (or the change refuses), put everything back. */
-const MKS = ['inv', 'pur', 'prod', 'sr', 'prr', 'rej', 'tx', 'exp', 'cust', 'sup', 'banks', 'items'];
+const MKS = ['inv', 'pur', 'prod', 'sr', 'prr', 'rej', 'pp', 'tx', 'exp', 'cust', 'sup', 'banks', 'items'];
 function negs(b) {
   const n = b.items.filter(i => stock(b, i) < -1e-6).map(i => i.name);
   if (bal(b, cashAcc(b)) < -0.005) n.push('Cash in hand');
@@ -2943,7 +3075,7 @@ function editInv(id) {
 /* Every record (an invoice, a payment, a customer...) is its own document in the shared store, so two
    people editing different records never overwrite each other. The in-memory state S stays the single
    source the screens read; save() writes the changes out and snapshots from other people are merged in. */
-const SH_ARR = ['items', 'inv', 'banks', 'tx', 'pur', 'prod', 'cust', 'sup', 'exp', 'sr', 'prr', 'rej'];
+const SH_ARR = ['items', 'inv', 'banks', 'tx', 'pur', 'prod', 'cust', 'sup', 'exp', 'sr', 'prr', 'rej', 'pp'];
 const SH = {
   db: null, // the shared store, or null when this view has none (data then stays on this device)
   ro: false, // true when this person may look but not change
@@ -3028,7 +3160,7 @@ function shBuild(bodies) {
   const bm = new Map();
   bodies.forEach(x => {
     if (x.t === 'biz')
-      bm.set(x.b, Object.assign({ items: [], inv: [], banks: [], tx: [], pur: [], prod: [], cust: [], sup: [], exp: [], sr: [], prr: [], rej: [] }, x.d));
+      bm.set(x.b, Object.assign({ items: [], inv: [], banks: [], tx: [], pur: [], prod: [], cust: [], sup: [], exp: [], sr: [], prr: [], rej: [], pp: [] }, x.d));
   });
   bodies.forEach(x => {
     const b = bm.get(x.b);
