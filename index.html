@@ -820,7 +820,7 @@ function view(id) {
     .map(l => {
       const i = itm(b, l.item),
         a = l.qty * l.rate;
-      return `<tr><td>${esc(i.name)}</td><td>${i.hsn}</td><td class="n">${l.qty}</td><td class="n">${fmt(l.rate)}</td><td class="n">${v.co === false ? '—' : '18%'}</td><td class="n">${fmt(a)}</td></tr>`;
+      return `<tr><td>${esc(i.name)}</td><td>${esc(i.hsn)}</td><td class="n">${l.qty}</td><td class="n">${fmt(l.rate)}</td><td class="n">${v.co === false ? '—' : '18%'}</td><td class="n">${fmt(a)}</td></tr>`;
     })
     .join('');
   const tax =
@@ -865,7 +865,7 @@ function vStk(b) {
  )
    .map(r => {
      const q = eff(b, f)[r.id] || 0;
-     return `<tr><td>${esc(r.name)} (${r.unit})</td><td class="n">${cu && cu.item == r.id ? fq(q) + ' (from stack weight)' : `<input style="width:90px" type="number" min="0" step="any" value="${(f.bom || {})[r.id] || 0}" onchange="setBom('${f.id}','${r.id}',this.value)">`}</td><td class="n">${fmt(q * cur(b, r))}</td></tr>`;
+     return `<tr><td>${esc(r.name)} (${esc(r.unit)})</td><td class="n">${cu && cu.item == r.id ? fq(q) + ' (from stack weight)' : `<input style="width:90px" type="number" min="0" step="any" value="${(f.bom || {})[r.id] || 0}" onchange="setBom('${f.id}','${r.id}',this.value)">`}</td><td class="n">${fmt(q * cur(b, r))}</td></tr>`;
    })
    .join(
      ''
@@ -876,17 +876,17 @@ function vStk(b) {
     .filter(i => i.type == 'scrap')
     .map(
       i =>
-        `<tr><td>${esc(i.name)}</td><td>${i.hsn}</td><td class="n">${i.from ? `Coil cost minus ₹ <input style="width:70px" type="number" min="0" step="any" value="${i.less}" onchange="setLess('${i.id}',this.value)">` : 'Fixed price'}</td><td class="n">${fmt(ip(b, i))} / ${i.unit}</td><td class="n">${stock(b, i)} ${i.unit}</td><td>${ACT('Item', i.id)}</td></tr>`
+        `<tr><td>${esc(i.name)}</td><td>${esc(i.hsn)}</td><td class="n">${i.from ? `Coil cost minus ₹ <input style="width:70px" type="number" min="0" step="any" value="${i.less}" onchange="setLess('${i.id}',this.value)">` : 'Fixed price'}</td><td class="n">${fmt(ip(b, i))} / ${esc(i.unit)}</td><td class="n">${stock(b, i)} ${esc(i.unit)}</td><td>${ACT('Item', i.id)}</td></tr>`
     )
     .join('');
-  return `${low.length ? `<div class="alert">Low stock: ${low.map(i => `${esc(i.name)} (${stock(b, i)} ${i.unit} left)`).join(', ')}</div>` : ''}
+  return `${low.length ? `<div class="alert">Low stock: ${low.map(i => `${esc(i.name)} (${stock(b, i)} ${esc(i.unit)} left)`).join(', ')}</div>` : ''}
  <div class="kpis"><div><small>Raw material value</small><b>${fmt(val('raw'))}</b></div><div><small>Finished goods value</small><b>${fmt(val('fg'))}</b></div></div>
  <div class="card"><h2>Raw materials</h2><div class="tw"><table><tr><th>Material</th><th>HSN</th><th>Unit</th><th class="n">Latest cost</th><th class="n">In stock</th><th class="n">Value</th><th></th></tr>${raws(
    b
  )
    .map(i => {
      const s = stock(b, i);
-     return `<tr><td>${esc(i.name)}</td><td>${esc(i.hsn)}</td><td>${i.unit}</td><td class="n">${fmt(cur(b, i))}</td><td class="n ${s <= i.min ? 'unpaid' : ''}">${s}</td><td class="n">${fmt(s * cur(b, i))}</td><td>${ACT('Item', i.id)}</td></tr>`;
+     return `<tr><td>${esc(i.name)}</td><td>${esc(i.hsn)}</td><td>${esc(i.unit)}</td><td class="n">${fmt(cur(b, i))}</td><td class="n ${s <= i.min ? 'unpaid' : ''}">${s}</td><td class="n">${fmt(s * cur(b, i))}</td><td>${ACT('Item', i.id)}</td></tr>`;
    })
    .join('')}</table></div></div>
  <div class="card"><h2>Finished goods</h2><div class="tw"><table><tr><th>Product</th><th>HSN</th><th class="n">Selling price</th><th class="n">Cost per unit</th><th class="n">In stock</th><th></th></tr>${fgs(
@@ -1007,7 +1007,7 @@ function vPro(b) {
    .map(x => {
      const i = itm(b, x.item),
        a = stock(b, i);
-     return `<tr><td>${esc(i.name)}</td><td class="n">${x.qty} ${i.unit}</td><td class="n ${a < x.qty ? 'unpaid' : ''}">${a} ${i.unit}</td></tr>`;
+     return `<tr><td>${esc(i.name)}</td><td class="n">${x.qty} ${esc(i.unit)}</td><td class="n ${a < x.qty ? 'unpaid' : ''}">${a} ${esc(i.unit)}</td></tr>`;
    })
    .join('')}</table></div>
  <p style="margin:8px 0 0">You can make up to <b>${mx}</b> with the material in stock.${INF(`You can make up to ${mx} with the material in stock.${f && f.cu ? ` Making ${PR.qty} uses ${fq(PR.qty * f.cu.segs)} copper segments (${fq((PR.qty * f.cu.grams) / 1000)} kg) and leaves ${fq((u.find(x => x.item == f.cu.item) || { qty: 0 }).qty * (1 - (itm(b, f.cu.item).yield || 100) / 100))} kg heavy scrap.` : ''}${
@@ -1091,7 +1091,7 @@ function vRet(b) {
       : '<p>No invoices with goods that can be returned.</p>'
   }
  <div class="tw" style="margin-top:12px"><table><tr><th>Date</th><th>Credit note</th><th>Customer</th><th>Goods</th><th>Stock</th><th class="n">Credit</th><th>Reason</th><th></th></tr>${sr}</table></div></div>
- <div class="card"><h2>Rejected raw material (debit note)</h2>${pu ? `<div class="row"><label>Purchase<select id="pri" onchange="RT.pur=this.value;R()">${pus.map(x => `<option value="${x.id}" ${x.id == pu.id ? 'selected' : ''}>${esc(x.sup)} – ${esc(itm(b, x.item).name)}, ${x.dt} (${fq(x.qty - prQty(b, x))} ${itm(b, x.item).unit} returnable)</option>`).join('')}</select></label><label>Quantity returned<input id="prq" type="number" min="0" step="any"></label><label>Date<input id="prd" type="date" value="${today()}"></label><label>Reason<input id="prn" placeholder="e.g. poor quality"></label><button class="b" onclick="doPR()">Record purchase return</button>${INF('The material leaves stock and the amount (with GST for firms) is taken off what you owe the supplier. If already paid, the supplier owes you a credit.')}</div><p id="prerr" style="color:var(--bad);margin:0"></p>` : '<p>No purchases to return.</p>'}
+ <div class="card"><h2>Rejected raw material (debit note)</h2>${pu ? `<div class="row"><label>Purchase<select id="pri" onchange="RT.pur=this.value;R()">${pus.map(x => `<option value="${x.id}" ${x.id == pu.id ? 'selected' : ''}>${esc(x.sup)} – ${esc(itm(b, x.item).name)}, ${x.dt} (${fq(x.qty - prQty(b, x))} ${esc(itm(b, x.item).unit)} returnable)</option>`).join('')}</select></label><label>Quantity returned<input id="prq" type="number" min="0" step="any"></label><label>Date<input id="prd" type="date" value="${today()}"></label><label>Reason<input id="prn" placeholder="e.g. poor quality"></label><button class="b" onclick="doPR()">Record purchase return</button>${INF('The material leaves stock and the amount (with GST for firms) is taken off what you owe the supplier. If already paid, the supplier owes you a credit.')}</div><p id="prerr" style="color:var(--bad);margin:0"></p>` : '<p>No purchases to return.</p>'}
  <div class="tw"><table><tr><th>Date</th><th>Debit note</th><th>Supplier</th><th>Material</th><th class="n">Amount</th><th>Reason</th><th></th></tr>${pr}</table></div></div>
  <div class="card"><h2>Production rejects</h2>${fg.length ? `<div class="row"><label>Product<select id="xf">${fg.map(f => `<option value="${f.id}">${esc(f.name)} (${stock(b, f)} in stock)</option>`).join('')}</select></label><label>Rejected quantity<input id="xq" type="number" min="0" step="any"></label><label>Date<input id="xd2" type="date" value="${today()}"></label><label>Reason<input id="xn" placeholder="e.g. failed spin test"></label><button class="b" onclick="doRej()">Record reject</button>${INF('Rejected pieces leave finished stock. Their material cost stays in cost of goods sold, so profit falls by that cost.')}</div><p id="xrerr" style="color:var(--bad);margin:0"></p>` : ''}
  <div class="tw"><table><tr><th>Date</th><th>Product</th><th class="n">Rejected</th><th>Reason</th><th></th></tr>${rj}</table></div></div>`;
@@ -2028,7 +2028,7 @@ function ledgers(b) {
       n = p.item ? i.name : '';
     get('s:' + p.sup.toLowerCase(), p.sup, 'Suppliers').e.push({
       d: p.dt,
-      p: `Purchase of ${n}, ${p.qty} ${i.unit}`,
+      p: `Purchase of ${n}, ${p.qty} ${esc(i.unit)}`,
       dr: 0,
       cr: t * (1 + pg(p))
     });
