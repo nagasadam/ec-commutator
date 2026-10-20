@@ -195,6 +195,12 @@ td .pkb{min-height:34px;padding:4px 30px 4px 9px;font-size:13px}
 #ov{position:fixed;inset:0;background:var(--scrim);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);display:none;align-items:flex-start;justify-content:center;overflow:auto;padding:24px;z-index:50}
 #login{position:fixed;inset:0;z-index:100;display:flex;align-items:center;justify-content:center;padding:16px;background:var(--bg)}
 #tip{z-index:120}
+#login{overflow:hidden}
+#login .lgbg{position:absolute;inset:0;pointer-events:none;overflow:hidden}
+#login .lgbg::before{content:'';position:absolute;left:50%;top:50%;width:min(140vmin,1000px);height:min(140vmin,1000px);transform:translate(-50%,-50%);background:radial-gradient(circle,var(--ring) 0,transparent 62%);opacity:.9;animation:lgglow 5s ease-in-out infinite}
+#login .lgbg svg{position:absolute;left:50%;top:50%;width:min(125vmin,900px);height:min(125vmin,900px);margin:calc(min(125vmin,900px)/-2) 0 0 calc(min(125vmin,900px)/-2);color:var(--acc)}
+@keyframes lgglow{0%,100%{transform:translate(-50%,-50%) scale(.92);opacity:.6}50%{transform:translate(-50%,-50%) scale(1.06);opacity:1}}
+#login .card{position:relative;z-index:1}
 #login .card{width:100%;max-width:400px;background:var(--bg2);margin:0}
 #login label{display:flex;flex-direction:column;gap:6px;margin:0 0 12px;font-size:13px;color:var(--mut)}
 #login .lgb{display:flex;flex-wrap:wrap;gap:8px;margin:4px 0 10px}
@@ -230,7 +236,7 @@ td .pkb{min-height:34px;padding:4px 30px 4px 9px;font-size:13px}
   <details class="bm" id="bm"><summary>Add business or reset</summary><div class="bmb"><input id="nb" placeholder="New business name" aria-label="New business name"><button class="b g" onclick="newBiz()">Add business</button><span id="rs"><button class="b g" onclick="askReset()">Reset all data</button></span></div></details></div>
  <nav id="nav" aria-label="Sections"></nav>
 </aside>
-<main class="main"><div class="ph" id="ph"></div><div id="m"></div></main><div id="toast" role="status"></div><div id="ov" role="dialog" aria-modal="true" aria-label="Invoice"></div><div id="login" role="dialog" aria-modal="true" aria-label="Sign in"><div class="card" id="lgc"><p style="margin:0;color:var(--mut)" role="status">Loading…</p></div></div>
+<main class="main"><div class="ph" id="ph"></div><div id="m"></div></main><div id="toast" role="status"></div><div id="ov" role="dialog" aria-modal="true" aria-label="Invoice"></div><div id="login" role="dialog" aria-modal="true" aria-label="Sign in"><div class="lgbg" aria-hidden="true"><svg viewBox="0 0 600 600" fill="none" stroke="currentColor"><g class="r1"><circle cx="300" cy="300" r="255" stroke-width="64" stroke-dasharray="60 6.8" opacity=".16"/><circle cx="300" cy="300" r="255" stroke-width="64" stroke-dasharray="60 1542" opacity=".55"/><circle cx="300" cy="300" r="255" stroke-width="64" stroke-dasharray="60 1542" stroke-dashoffset="-801" opacity=".4"/><animateTransform attributeName="transform" type="rotate" from="0 300 300" to="360 300 300" dur="36s" repeatCount="indefinite"/></g><g class="r2"><circle cx="300" cy="300" r="178" stroke-width="44" stroke-dasharray="46.6 4.5" opacity=".14"/><circle cx="300" cy="300" r="178" stroke-width="44" stroke-dasharray="46.6 1072" opacity=".6"/><animateTransform attributeName="transform" type="rotate" from="360 300 300" to="0 300 300" dur="24s" repeatCount="indefinite"/></g><g class="r3"><circle cx="300" cy="300" r="112" stroke-width="26" stroke-dasharray="40 5.4" opacity=".18"/><circle cx="300" cy="300" r="112" stroke-width="26" stroke-dasharray="40 664" opacity=".7"/><animateTransform attributeName="transform" type="rotate" from="0 300 300" to="360 300 300" dur="14s" repeatCount="indefinite"/></g><circle cx="300" cy="300" r="62" stroke-width="2" opacity=".25"/><circle cx="300" cy="300" r="20" stroke-width="2" opacity=".25"/></svg></div><div class="card" id="lgc"><p style="margin:0;color:var(--mut)" role="status">Loading…</p></div></div>
 <script>
 
 /* ======== Helpers and formatting ======== */
