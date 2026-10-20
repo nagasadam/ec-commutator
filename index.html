@@ -15,7 +15,8 @@ body{margin:0;color:var(--ink);font:14.5px/1.55 'Sora',system-ui,-apple-system,'
 .side{position:sticky;top:0;height:100vh;overflow-y:auto;background:var(--card);-webkit-backdrop-filter:blur(18px) saturate(1.2);backdrop-filter:blur(18px) saturate(1.2);border-right:1px solid var(--line);padding:max(22px,env(safe-area-inset-top)) 14px 20px;display:flex;flex-direction:column;gap:20px}
 .brand{display:flex;align-items:center;gap:12px;padding:0 8px}
 .logo{width:40px;height:40px;flex:none;filter:drop-shadow(0 0 10px var(--glow))}
-.logo .seg{animation:spin 1.6s cubic-bezier(.2,.7,.2,1) both;transform-origin:16px 16px}
+.logo .seg{animation:spin 1.6s cubic-bezier(.2,.7,.2,1) both,orbit 12s linear 1.6s infinite;transform-origin:16px 16px}
+@keyframes orbit{to{transform:rotate(360deg)}}
 @keyframes spin{from{transform:rotate(-200deg);opacity:0}to{transform:rotate(0);opacity:1}}
 h1{font-size:14.5px;line-height:1.25;margin:0;font-weight:700;letter-spacing:-.01em}
 .biz{display:flex;flex-direction:column;gap:6px;padding:0 6px}
@@ -128,6 +129,8 @@ td[colspan]:only-child{color:var(--mut);text-align:center;padding:30px 14px;whit
 .paper td{color:#111!important;padding:6px 8px;border-bottom:1px solid #e6eaee;vertical-align:top;background:none!important}
 .paper .n{text-align:right;font-family:'JetBrains Mono',ui-monospace,monospace;white-space:nowrap;font-size:12px}
 .paper tr.ob td{background:#f6f8fa!important}
+#lst td:nth-child(2){white-space:normal;overflow-wrap:anywhere;min-width:180px}
+.paper td:nth-child(2),.paper td.lr{white-space:normal;overflow-wrap:anywhere}.paper td:nth-child(2){min-width:180px}
 @media(max-width:600px){.paper{padding:12px 6px}#ov .card:has(.paper){padding:12px 10px}.paper .lr{display:none}.paper table{zoom:.8}.paper td:nth-child(2){white-space:normal;overflow-wrap:anywhere;min-width:70px;max-width:120px}.paper .ph1,.paper .ph2,.paper .ph3,.paper .ph4{padding:0 4px}.paper th,.paper td{padding:5px 3px;font-size:11.5px}.paper .n{font-size:11px;letter-spacing:-.02em}.paper .ph1{font-size:14px}.paper .ph3{font-size:15px}}
 /* KPIs */
 .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px;margin-bottom:22px}
@@ -206,6 +209,7 @@ td .pkb{min-height:34px;padding:4px 30px 4px 9px;font-size:13px}
 #login .lgb{display:flex;flex-wrap:wrap;gap:8px;margin:4px 0 10px}
 #fbout{align-self:flex-start;font-size:12px;padding:4px 10px;min-height:28px}
 #ov .card{max-width:720px;width:100%;margin:4vh 0;background:var(--bg2)}
+#ov .card:has(.paper){max-width:960px}
 ::selection{background:var(--accsoft)}
 @media(max-width:860px){
  body{display:block}
