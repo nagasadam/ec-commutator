@@ -193,7 +193,7 @@ td .pkb{min-height:34px;padding:4px 30px 4px 9px;font-size:13px}
 @media(max-width:600px){.pkb{font-size:16px;min-height:44px}}
 /* invoice dialog */
 #ov{position:fixed;inset:0;background:var(--scrim);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);display:none;align-items:flex-start;justify-content:center;overflow:auto;padding:24px;z-index:50}
-#login{position:fixed;inset:0;z-index:100;display:none;align-items:center;justify-content:center;padding:16px;background:var(--scrim);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px)}
+#login{position:fixed;inset:0;z-index:100;display:flex;align-items:center;justify-content:center;padding:16px;background:var(--bg)}
 #login .card{width:100%;max-width:400px;background:var(--bg2);margin:0}
 #login label{display:flex;flex-direction:column;gap:6px;margin:0 0 12px;font-size:13px;color:var(--mut)}
 #login .lgb{display:flex;flex-wrap:wrap;gap:8px;margin:4px 0 10px}
@@ -229,7 +229,7 @@ td .pkb{min-height:34px;padding:4px 30px 4px 9px;font-size:13px}
   <details class="bm" id="bm"><summary>Add business or reset</summary><div class="bmb"><input id="nb" placeholder="New business name" aria-label="New business name"><button class="b g" onclick="newBiz()">Add business</button><span id="rs"><button class="b g" onclick="askReset()">Reset all data</button></span></div></details></div>
  <nav id="nav" aria-label="Sections"></nav>
 </aside>
-<main class="main"><div class="ph" id="ph"></div><div id="m"></div></main><div id="toast" role="status"></div><div id="ov" role="dialog" aria-modal="true" aria-label="Invoice"></div><div id="login" role="dialog" aria-modal="true" aria-label="Sign in"><div class="card" id="lgc"></div></div>
+<main class="main"><div class="ph" id="ph"></div><div id="m"></div></main><div id="toast" role="status"></div><div id="ov" role="dialog" aria-modal="true" aria-label="Invoice"></div><div id="login" role="dialog" aria-modal="true" aria-label="Sign in"><div class="card" id="lgc"><p style="margin:0;color:var(--mut)" role="status">Loading…</p></div></div>
 <script>
 
 /* ======== Helpers and formatting ======== */
@@ -3318,9 +3318,13 @@ async function shInit() {
   try {
     SH.db = (window.claude && claude.use && (await claude.use('db'))) || null;
   } catch (e) {}
-  if (SH.db && typeof SH.db.collection === 'function') return shStart(true);
+  if (SH.db && typeof SH.db.collection === 'function') {
+    $('#login').style.display = 'none';
+    return shStart(true);
+  }
   SH.db = null;
   if (FB.config) return fbBoot();
+  $('#login').style.display = 'none';
   shStat('local');
 }
 async function shStart(viaClaude) {
