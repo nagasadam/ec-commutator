@@ -3464,7 +3464,7 @@ function fbVerify(u) {
 }
 function fbDenied() {
   const u = FB.user || {};
-  fbPanel(`<h2>No access</h2><p style="color:var(--mut);margin:0 0 12px">${esc(u.email || 'This account')} is not on the access list for these books. Ask the owner to add it, then sign out and sign in again.</p><div class="lgb"><button class="b" onclick="fbOut()">Sign out</button></div>`);
+  fbPanel(`<h2>No access</h2><p style="color:var(--mut);margin:0 0 12px">${esc(u.email || 'This account')} is not on the access list. Ask the owner to add it, then sign out and sign in again.</p><div class="lgb"><button class="b" onclick="fbOut()">Sign out</button></div>`);
 }
 const FB_MSG = {
   invalid_credential: 'Wrong email or password.',
