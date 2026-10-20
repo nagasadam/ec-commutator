@@ -3451,7 +3451,7 @@ function fbPanel(h) {
 }
 const fbErr = m => ($('#lger').textContent = m);
 function fbLogin(msg) {
-  fbPanel(`<h2>Sign in</h2><p style="color:var(--mut);margin:0 0 12px">${esc(msg || 'Sign in with your email and password to open the shared books. New here? Create an account, then verify your email.')}</p>
+  fbPanel(`<h2>Sign in${INF(msg || 'Sign in with your email and password to open the shared books. New here? Create an account, then verify your email.')}</h2>
  <label>Email<input id="lge" type="email" autocomplete="username"></label>
  <label>Password<input id="lgp" type="password" autocomplete="current-password" onkeydown="if(event.key=='Enter')fbSign(0)"></label>
  <div class="lgb"><button class="b" onclick="fbSign(0)">Sign in</button><button class="b g" onclick="fbSign(1)">Create account</button></div>
