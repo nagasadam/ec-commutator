@@ -534,6 +534,17 @@ const cashAcc = b => ({ id: 'cash', name: 'Cash in hand', open: b.cashOpen || 0 
   accOpts = b =>
     b.banks.map(x => `<option value="${x.id}">${esc(x.name)}</option>`).join('') + PER_OPTS;
 
+/* An account (bank, cash or GPay) never goes into credit: a payment is refused when the balance is short. */
+const accOf = (b, id) => (id == 'cash' ? cashAcc(b) : id == 'gpay' ? gpayAcc(b) : b.banks.find(k => k.id == id));
+function lowBal(b, id, amt) {
+  const k = accOf(b, id);
+  if (!k) return '';
+  const have = bal(b, k);
+  return amt > have + 0.005
+    ? `Insufficient balance in ${k.name}: ${fmt(have)} available, ${fmt(amt)} needed. Pick another account, receive money first, or pay later.`
+    : '';
+}
+
 /* ======== Navigation and page rendering ======== */
 const IC = {
   ret: '<path d="M9 14L4 9l5-5"/><path d="M4 9h10a6 6 0 0 1 0 12h-3"/>',
@@ -1264,11 +1275,10 @@ function doPur() {
       'Firms and companies are paid through a bank account. Pick a bank account or Pay later.');
   if (!co && now && !isPer(acc))
     return ($('#uerr').textContent = 'Individuals are paid in cash or GPay. Pick Cash in hand, GPay or Pay later.');
-  if (acc == 'cash' && q * r * (co ? 1.18 : 1) > bal(b, cashAcc(b)) + 0.005)
-    return ($('#uerr').textContent =
-      'Not enough cash in hand (' +
-      fmt(bal(b, cashAcc(b))) +
-      '). Pick a bank account or add cash in Banking.');
+  if (now) {
+    const lb = lowBal(b, acc, q * r * (co ? 1.18 : 1));
+    if (lb) return ($('#uerr').textContent = lb);
+  }
   const p = {
     id: uid(),
     dt: $('#ud').value || today(),
@@ -1968,9 +1978,9 @@ function paySup() {
     e.textContent = 'Enter an amount up to ' + fmt(due) + '.';
     return;
   }
-  if (acc == 'cash' && a > bal(b, cashAcc(b)) + 0.005) {
-    e.textContent =
-      'Not enough cash in hand (' + fmt(bal(b, cashAcc(b))) + '). Pick a bank account or add cash first.';
+  const lb = lowBal(b, acc, a);
+  if (lb) {
+    e.textContent = lb;
     return;
   }
   const dt = $('#sd').value || today();
@@ -2600,11 +2610,8 @@ function doExp() {
     gst: g != 'none',
     bank: $('#xb').value
   };
-  if (x.bank == 'cash' && x.amt * (x.gst ? 1.18 : 1) > bal(b, cashAcc(b)) + 0.005)
-    return ($('#xerr').textContent =
-      'Not enough cash in hand (' +
-      fmt(bal(b, cashAcc(b))) +
-      '). Pick a bank account or add cash in Banking.');
+  const lb = lowBal(b, x.bank, x.amt * (x.gst ? 1.18 : 1));
+  if (lb) return ($('#xerr').textContent = lb);
   b.exp.push(x);
   b.tx.push({ id: uid(), exp: x.id, bank: x.bank, amt: -x.amt * (x.gst ? 1.18 : 1), dt: x.dt });
   save();
@@ -2715,7 +2722,9 @@ const partyDue = (b, p, isC) =>
 const MKS = ['inv', 'pur', 'prod', 'sr', 'prr', 'rej', 'pp', 'tx', 'exp', 'cust', 'sup', 'banks', 'items'];
 function negs(b) {
   const n = b.items.filter(i => stock(b, i) < -1e-6).map(i => i.name);
-  if (bal(b, cashAcc(b)) < -0.005) n.push('Cash in hand');
+  [cashAcc(b), gpayAcc(b), ...b.banks].forEach(k => {
+    if (bal(b, k) < -0.005) n.push(k.name);
+  });
   return n;
 }
 function tryMut(fn, onErr, onOk) {
