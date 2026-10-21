@@ -3195,10 +3195,10 @@ function shStat(k) {
     }
     w.textContent =
       k == 'ro'
-        ? 'View only: changes on this device are NOT saved to the shared data.'
+        ? 'View only: changes on this device are NOT saved to the shared data.' + (SH.lastErr ? ' [' + SH.lastErr + ']' : '')
         : k == 'full'
           ? 'Shared storage is full: new changes are NOT saved.'
-          : 'Could not save to the shared data. Your latest changes are only on this device. Keep this page open until it says Live.';
+          : 'Could not save to the shared data. Your latest changes are only on this device. Keep this page open until it says Live.' + (SH.lastErr ? ' [' + SH.lastErr + ']' : '');
   } else if (w) w.remove();
 }
 function shShow() {
@@ -3387,6 +3387,7 @@ async function shFlush() {
 }
 function shFail(e) {
   const c = e && e.code;
+  SH.lastErr = String(c || 'error') + (e && e.message ? ': ' + String(e.message).slice(0, 110) : '');
   if (c === 'invalid_argument' || c === 'revoked') {
     SH.ro = true; // this person can read but not write
     document.body.classList.add('ro');
