@@ -164,3 +164,11 @@ Business E.C Commutators. Openings: HDFC Current ₹2,50,000, cash ₹30,000, GP
 - First sign-in seeds the sample data (`tools/test_seed.json`); all four testers then share it live.
 - To restore the sample data: delete the docs in Firestore (`rec`, `meta`) and sign in again in a browser whose `ectest10` storage is cleared.
 - Rebuild it after every change to the live app so testers see the same version.
+
+## 12. Test copy (separate Firebase project)
+
+- URL: https://nagasadam.github.io/ec-commutator/test/ — built by `python3 tools/build_test_fb.py tools/test_firebase_config.json` from the live `index.html`; seed data in `tools/test_seed.json`.
+- Firebase project `ec-commutator-test`, users `tester1`…`tester4` (login as `tester1`, app adds `@ec-test.app`), no email verification, rules limit access to those four emails.
+- Own localStorage keys (`ectest10…`) so it never touches the real site's data on the same origin.
+- The first sign-in publishes the sample data to Firestore; to reset: delete all docs in the `rec` collection in the console, clear site data, sign in again.
+- Rebuild after every change to the live app so testers see the same version.
