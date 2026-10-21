@@ -249,6 +249,7 @@ async function fbOut() {
   if (shUnsaved() || (SH.ro && shDiffers())) {
     if (!confirm('Some of your changes are not saved to the shared data yet. If you sign out now they will be lost. Sign out anyway?')) return;
   }
+  SH.off = true; // from here on nothing may write the local copy or the store
   try {
     await FB.sdk.signOut(FB.auth);
   } catch (e) {}

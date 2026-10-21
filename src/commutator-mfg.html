@@ -3091,6 +3091,8 @@ const SH = {
   seq: 0,
   catchup: 0,
   missed: false,
+  off: false, // signing out: no more sync work, so nothing is written back after the local copy is cleared
+  seen: null, // ids this page has held locally: only these may ever be deleted from the store
   quiet: 0 // after our own writes, snapshots are ignored for a moment in case they pre-date them
 };
 function shLog(m) {
@@ -3168,6 +3170,7 @@ function shDiffers() {
   return false;
 }
 function shPersist() {
+  if (SH.off) return;
   // remember what the store held, so changes not yet uploaded survive a refresh
   try {
     localStorage.setItem('booksmith10sh', JSON.stringify([...SH.known]));
@@ -3237,7 +3240,9 @@ function shShow() {
   } else R();
 }
 function shApply(snap) {
-  shLog('snapshot docs=' + snap.docs.length + ' cache=' + !!(snap.metadata && snap.metadata.fromCache) + ' ready=' + SH.ready + ' synced=' + SH.synced + ' busy=' + SH.busy + ' timer=' + !!SH.timer);
+  if (SH.off) return;
+  if (snap.docs.length !== SH.lastN || !SH.ready) shLog('snapshot docs=' + snap.docs.length + ' cache=' + !!(snap.metadata && snap.metadata.fromCache) + ' ready=' + SH.ready + ' synced=' + SH.synced + ' busy=' + SH.busy + ' timer=' + !!SH.timer);
+  SH.lastN = snap.docs.length;
   const rem = new Map();
   snap.docs.forEach(d => {
     const x = d.data();
@@ -3257,11 +3262,23 @@ function shApply(snap) {
   const local = shFlat(),
     out = new Map(rem);
   shLog('apply remote=' + rem.size + ' local=' + local.size + ' known=' + SH.known.size + ' adopt=' + adopt);
+  if (!adopt && !SH.ro && !SH.seen && SH.known.size >= 5) {
+    // this copy lost most of what it had synced (cleared or replaced): do not treat that as deletions
+    let miss = 0;
+    for (const id of SH.known.keys()) if (!local.has(id)) miss++;
+    if (miss > SH.known.size / 2) {
+      adopt = true;
+      shRescue(rem);
+      shLog('local copy does not match the last sync: taking the shared data');
+    }
+  }
   if (!adopt && !SH.ro) {
     // changes made here that the store has not seen yet win over the store's copy
     for (const [id, js] of local) if (SH.known.get(id) !== shH(js)) out.set(id, js);
-    for (const id of SH.known.keys()) if (!local.has(id)) out.delete(id);
+    if (!SH.seen) SH.seen = new Set(local.keys()); // first look: whatever is missing here may just be a cleared or fresh copy
+    for (const id of SH.known.keys()) if (!local.has(id) && SH.seen.has(id)) out.delete(id);
   }
+  SH.seen = new Set(out.keys());
   SH.known = new Map([...rem].map(([id, js]) => [id, shH(js)]));
   shPersist();
   if (!SH.ro) shStat('live');
@@ -3366,7 +3383,7 @@ async function shSeed() {
   shSchedule(true);
 }
 function shSchedule(now) {
-  if (!SH.db || SH.ro || !SH.ready) return;
+  if (!SH.db || SH.ro || !SH.ready || SH.off) return;
   clearTimeout(SH.timer);
   SH.timer = setTimeout(shFlush, now ? 0 : 150);
   shStat('saving');
@@ -3384,6 +3401,7 @@ async function shTry(fn) {
 }
 async function shFlush() {
   SH.timer = 0;
+  if (SH.off) return;
   if (SH.busy) {
     SH.again = true;
     return;
@@ -3397,9 +3415,11 @@ async function shFlush() {
       for (const [id, js] of cur)
         if (SH.known.get(id) !== shH(js))
           todo.push(() => shTry(() => SH.db.doc('rec/' + id).set(JSON.parse(js))).then(() => SH.known.set(id, shH(js))));
+      if (!SH.seen) SH.seen = new Set(cur.keys());
       for (const id of [...SH.known.keys()])
-        if (!cur.has(id)) todo.push(() => shTry(() => SH.db.doc('rec/' + id).delete()).then(() => SH.known.delete(id)));
-      shLog('flush writes/deletes=' + todo.length + ' of local=' + cur.size);
+        if (!cur.has(id) && SH.seen.has(id)) todo.push(() => shTry(() => SH.db.doc('rec/' + id).delete()).then(() => SH.known.delete(id)));
+      shLog('flush ops=' + todo.length + ' local=' + cur.size + ' known=' + SH.known.size + ' del=' + [...SH.known.keys()].filter(i => !cur.has(i)).length);
+      SH.seen = new Set(cur.keys());
       for (let i = 0; i < todo.length; i += 6) {
         await Promise.all(todo.slice(i, i + 6).map(f => f())); // a few at a time
         shPersist();
