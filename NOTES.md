@@ -172,3 +172,9 @@ Business E.C Commutators. Openings: HDFC Current ₹2,50,000, cash ₹30,000, GP
 - Own localStorage keys (`ectest10…`) so it never touches the real site's data on the same origin.
 - The first sign-in publishes the sample data to Firestore; to reset: delete all docs in the `rec` collection in the console, clear site data, sign in again.
 - Rebuild after every change to the live app so testers see the same version.
+
+## 13. Data-safety rules (added after a data-loss report)
+
+- A device that never synced adopts the shared data, but any entries it held that the store lacks are saved aside (`booksmith10pend`) and a bar offers "Add them now" / "Discard". Never silently drop local entries.
+- When saving fails (`err`, `full`, `ro`) a red bar stays on top of the page. `beforeunload` warns while changes are unsaved; hiding the tab flushes at once; sign-out flushes first and asks before discarding.
+- Test with `loss2.py`-style scenarios: writes failing for device A, then A comes back after B seeded the store.

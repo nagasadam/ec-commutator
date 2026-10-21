@@ -3196,6 +3196,22 @@ function shStat(k) {
   };
   el.className = 'sync ' + k;
   el.textContent = t[k] || '';
+  let w = $('#savewarn');
+  if (k == 'err' || k == 'full' || k == 'ro') {
+    if (!w) {
+      w = document.createElement('div');
+      w.id = 'savewarn';
+      w.style.cssText =
+        'position:fixed;left:0;right:0;top:0;z-index:205;background:#b3261e;color:#fff;font:600 13px system-ui,sans-serif;padding:8px 12px;text-align:center';
+      document.body.appendChild(w);
+    }
+    w.textContent =
+      k == 'ro'
+        ? 'View only: changes on this device are NOT saved to the shared data.'
+        : k == 'full'
+          ? 'Shared storage is full: new changes are NOT saved.'
+          : 'Could not save to the shared data. Your latest changes are only on this device. Keep this page open until it says Live.';
+  } else if (w) w.remove();
 }
 function shShow() {
   // a change from someone else arrived: redraw now, or ask first if a form is half filled in
@@ -3218,6 +3234,7 @@ function shApply(snap) {
     SH.ready = true;
     if (!rem.size) return shSeed(); // nothing shared yet: publish what this device has
     adopt = !SH.synced; // a device that never synced takes the shared books as they are
+    if (adopt) shRescue(rem); // ...but entries it holds that the store lacks are kept aside, never dropped
   } else if (!SH.ro && (SH.busy || SH.timer || Date.now() < SH.quiet)) {
     SH.missed = true; // our own changes are still on their way: look again once they settle
     return shLater();
@@ -3246,6 +3263,72 @@ function shApply(snap) {
   shShow();
   if (!SH.ro && shDiffers()) shSchedule();
 }
+const SH_REAL = /^(inv|tx|pur|prod|cust|sup|exp|sr|prr|rej):/;
+function shRescue(rem) {
+  // this device holds entries that were never uploaded: keep a copy and offer to add them
+  try {
+    const local = shFlat(),
+      miss = [...local].filter(([id]) => !rem.has(id));
+    if (!miss.some(([id]) => SH_REAL.test(id))) return;
+    const old = JSON.parse(localStorage.getItem('booksmith10pend') || '[]'),
+      seen = new Set(old.map(x => x[0]));
+    localStorage.setItem('booksmith10pend', JSON.stringify(old.concat(miss.filter(([id]) => !seen.has(id)))));
+    setTimeout(shPendShow, 0);
+  } catch (e) {}
+}
+function shPendShow() {
+  let n = 0;
+  try {
+    n = JSON.parse(localStorage.getItem('booksmith10pend') || '[]').filter(([id]) => SH_REAL.test(id)).length;
+  } catch (e) {}
+  let el = $('#pend');
+  if (!n) return el && el.remove();
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'pend';
+    el.style.cssText =
+      'position:fixed;left:50%;top:10px;transform:translateX(-50%);z-index:210;max-width:94vw;background:#7a2a00;color:#fff;font:600 13px system-ui,sans-serif;padding:10px 14px;border-radius:12px;box-shadow:0 6px 24px rgba(0,0,0,.5);display:flex;gap:10px;align-items:center;flex-wrap:wrap';
+    document.body.appendChild(el);
+  }
+  el.innerHTML = `<span>${n} entr${n == 1 ? 'y was' : 'ies were'} made on this device but never saved to the shared data.</span><button class="b" onclick="shPendRestore()">Add them now</button><button class="b g" onclick="shPendDrop()">Discard</button>`;
+}
+function shPendDrop() {
+  try {
+    localStorage.removeItem('booksmith10pend');
+  } catch (e) {}
+  shPendShow();
+}
+function shPendRestore() {
+  try {
+    const add = JSON.parse(localStorage.getItem('booksmith10pend') || '[]'),
+      out = shFlat();
+    add.forEach(([id, js]) => {
+      if (!out.has(id)) out.set(id, js);
+    });
+    S.biz = shBuild([...out.values()].map(js => JSON.parse(js)));
+    S.biz.forEach(fixBiz);
+    if (!S.biz.find(b => b.id == S.cur)) S.cur = (S.biz[0] || {}).id || '';
+    localStorage.removeItem('booksmith10pend');
+    save();
+    R();
+  } catch (e) {}
+  shPendShow();
+}
+function shUnsaved() {
+  return !!(SH.db && !SH.ro && SH.ready && (SH.timer || SH.busy || shDiffers()));
+}
+window.addEventListener('beforeunload', e => {
+  if (shUnsaved()) {
+    e.preventDefault();
+    e.returnValue = '';
+  }
+});
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden && shUnsaved() && !SH.busy) {
+    clearTimeout(SH.timer);
+    shFlush();
+  }
+});
 function shLater() {
   // look again once our writes have settled
   clearTimeout(SH.catchup);
@@ -3541,6 +3624,15 @@ function fbLocal() {
   shStat('local');
 }
 async function fbOut() {
+  if (shUnsaved()) {
+    clearTimeout(SH.timer);
+    try {
+      await shFlush();
+    } catch (e) {}
+  }
+  if (shUnsaved() || (SH.ro && shDiffers())) {
+    if (!confirm('Some of your changes are not saved to the shared data yet. If you sign out now they will be lost. Sign out anyway?')) return;
+  }
   try {
     await FB.sdk.signOut(FB.auth);
   } catch (e) {}

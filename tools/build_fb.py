@@ -239,6 +239,15 @@ function fbLocal() {
   shStat('local');
 }
 async function fbOut() {
+  if (shUnsaved()) {
+    clearTimeout(SH.timer);
+    try {
+      await shFlush();
+    } catch (e) {}
+  }
+  if (shUnsaved() || (SH.ro && shDiffers())) {
+    if (!confirm('Some of your changes are not saved to the shared data yet. If you sign out now they will be lost. Sign out anyway?')) return;
+  }
   try {
     await FB.sdk.signOut(FB.auth);
   } catch (e) {}
