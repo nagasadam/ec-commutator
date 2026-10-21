@@ -27,7 +27,7 @@ inj="""<script>
 try{if(!localStorage.getItem(K))localStorage.setItem(K,JSON.stringify(SEED))}catch(e){}
 document.addEventListener('DOMContentLoaded',function(){var d=document.createElement('div');
 d.style.cssText='position:fixed;left:50%%;bottom:10px;transform:translateX(-50%%);z-index:200;background:#f0a063;color:#1b1209;font:600 12px system-ui,sans-serif;padding:6px 12px;border-radius:99px;box-shadow:0 4px 18px rgba(0,0,0,.4);pointer-events:none';
-d.textContent='TEST COPY \\u00b7 not the real books';document.body.appendChild(d)})})();
+d.textContent='TEST COPY \\u00b7 not real data';document.body.appendChild(d)})})();
 </script>"""%json.dumps(json.loads(seed))
 s=s.replace('<script>',inj+'\n<script>',1)
 import os;os.makedirs('test',exist_ok=True);open('test/index.html','w').write(s);print(len(s))
