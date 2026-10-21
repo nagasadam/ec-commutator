@@ -155,3 +155,12 @@ Business E.C Commutators. Openings: HDFC Current ₹2,50,000, cash ₹30,000, GP
 - Unit/HSN escaping fix.
 - User guide (Claude Doc and PDF) in dark theme.
 
+
+## 12. Test copy (separate Firebase project)
+
+- URL: https://nagasadam.github.io/ec-commutator/test/ → `test/index.html`, built by `python3 tools/build_test_fb.py tools/test_firebase_config.json` (run from the repo root after rebuilding `index.html`).
+- Uses Firebase project `ec-commutator-test` (not the real one). Users: tester1…tester4 (@ec-test.app, passwords set in the Firebase console). Username sign-in, no email verification.
+- Own browser storage keys (`ectest10*`) so it never mixes with the real site on the same origin.
+- First sign-in seeds the sample data (`tools/test_seed.json`); all four testers then share it live.
+- To restore the sample data: delete the docs in Firestore (`rec`, `meta`) and sign in again in a browser whose `ectest10` storage is cleared.
+- Rebuild it after every change to the live app so testers see the same version.
