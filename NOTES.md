@@ -155,9 +155,3 @@ Business E.C Commutators. Openings: HDFC Current ₹2,50,000, cash ₹30,000, GP
 - Unit/HSN escaping fix.
 - User guide (Claude Doc and PDF) in dark theme.
 
-## 12. Test copy for testers
-
-- `test/index.html` (https://nagasadam.github.io/ec-commutator/test/) is the local-only app with the sample data above preloaded; built by `tools/build_test.py` from `src/commutator-mfg.html` and `tools/test_seed.json`.
-- No sign-in, no Firebase: each person's data lives only in their own browser. Orange "TEST COPY" pill has a "Reset sample data" button.
-- Four tester links: `?u=1` … `?u=4` (label only).
-- Rebuild it after every change to the source so testers see the same version as live.
