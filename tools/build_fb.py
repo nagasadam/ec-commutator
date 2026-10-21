@@ -239,6 +239,7 @@ function fbLocal() {
   shStat('local');
 }
 async function fbOut() {
+  shLog('sign out: unsaved=' + shUnsaved() + ' busy=' + SH.busy + ' timer=' + !!SH.timer + ' ready=' + SH.ready);
   if (shUnsaved()) {
     clearTimeout(SH.timer);
     try {

@@ -3093,6 +3093,32 @@ const SH = {
   missed: false,
   quiet: 0 // after our own writes, snapshots are ignored for a moment in case they pre-date them
 };
+function shLog(m) {
+  // short event log kept across reloads, to find out why a save did not stick
+  try {
+    const a = JSON.parse(localStorage.getItem('booksmith10log') || '[]');
+    a.push(new Date().toISOString().slice(11, 23) + ' ' + m);
+    localStorage.setItem('booksmith10log', JSON.stringify(a.slice(-80)));
+  } catch (e) {}
+}
+function shLogShow() {
+  let t = '';
+  try {
+    t = JSON.parse(localStorage.getItem('booksmith10log') || '[]').join('\n');
+  } catch (e) {}
+  const d = document.createElement('div');
+  d.style.cssText = 'position:fixed;inset:0;z-index:300;background:rgba(0,0,0,.8);display:flex;align-items:center;justify-content:center;padding:12px';
+  d.innerHTML = '<div style="background:#111923;color:#e6ebf1;border-radius:12px;max-width:760px;width:100%;max-height:90vh;display:flex;flex-direction:column;padding:12px;gap:8px"><b>Sync log</b><textarea readonly style="flex:1;min-height:50vh;background:#0b1118;color:#cfe;font:11px monospace;border:0;padding:8px"></textarea><div style="display:flex;gap:8px"><button class="b" id="shlc">Copy</button><button class="b g" id="shlx">Close</button></div></div>';
+  document.body.appendChild(d);
+  d.querySelector('textarea').value = t || '(empty)';
+  d.querySelector('#shlx').onclick = () => d.remove();
+  d.querySelector('#shlc').onclick = () => {
+    d.querySelector('textarea').select();
+    try {
+      document.execCommand('copy');
+    } catch (e) {}
+  };
+}
 const shStamp = () => Date.now() * 1000 + (++SH.seq % 1000);
 function shCj(v) {
   // JSON with sorted keys, so the same data always gives the same text
@@ -3211,6 +3237,7 @@ function shShow() {
   } else R();
 }
 function shApply(snap) {
+  shLog('snapshot docs=' + snap.docs.length + ' cache=' + !!(snap.metadata && snap.metadata.fromCache) + ' ready=' + SH.ready + ' synced=' + SH.synced + ' busy=' + SH.busy + ' timer=' + !!SH.timer);
   const rem = new Map();
   snap.docs.forEach(d => {
     const x = d.data();
@@ -3229,6 +3256,7 @@ function shApply(snap) {
   } else if (!rem.size) return shSeed();
   const local = shFlat(),
     out = new Map(rem);
+  shLog('apply remote=' + rem.size + ' local=' + local.size + ' known=' + SH.known.size + ' adopt=' + adopt);
   if (!adopt && !SH.ro) {
     // changes made here that the store has not seen yet win over the store's copy
     for (const [id, js] of local) if (SH.known.get(id) !== shH(js)) out.set(id, js);
@@ -3371,13 +3399,16 @@ async function shFlush() {
           todo.push(() => shTry(() => SH.db.doc('rec/' + id).set(JSON.parse(js))).then(() => SH.known.set(id, shH(js))));
       for (const id of [...SH.known.keys()])
         if (!cur.has(id)) todo.push(() => shTry(() => SH.db.doc('rec/' + id).delete()).then(() => SH.known.delete(id)));
+      shLog('flush writes/deletes=' + todo.length + ' of local=' + cur.size);
       for (let i = 0; i < todo.length; i += 6) {
         await Promise.all(todo.slice(i, i + 6).map(f => f())); // a few at a time
         shPersist();
       }
     } while (SH.again || shDiffers());
     shStat('live');
+    shLog('flush done');
   } catch (e) {
+    shLog('flush failed ' + (e && e.code) + ' ' + (e && e.message));
     shFail(e);
   } finally {
     SH.busy = false;
