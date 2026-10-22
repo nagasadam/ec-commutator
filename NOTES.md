@@ -188,3 +188,4 @@ Business E.C Commutators. Openings: HDFC Current ₹2,50,000, cash ₹30,000, GP
 ## 15. Reset and delete a business
 
 - "Add, reset or delete business" panel: **Reset this business** (`doReset`) clears only the selected business (keeps id, name, type, default items); **Delete this business** (`doDel`) needs the business name typed and is refused for the only business. No owner gate; deletions sync through the normal flush diff.
+- Sync gotcha: the `biz` record only carries `kind` when it is `firm`. Writing `kind:person` made a tab still running an older build rewrite the record every few seconds (endless "Saving changes"). Any new field on the biz record must be omitted when default, or old tabs will ping-pong with new ones.

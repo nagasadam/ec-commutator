@@ -3203,7 +3203,7 @@ function shFlat() {
   const m = new Map();
   S.biz.forEach(b => {
     if (b._o == null) b._o = shStamp();
-    m.set('biz:' + b.id, shCj({ t: 'biz', b: b.id, d: { id: b.id, name: b.name, kind: b.kind || 'person', cashOpen: b.cashOpen || 0, gpayOpen: b.gpayOpen || 0, _o: b._o } }));
+    m.set('biz:' + b.id, shCj({ t: 'biz', b: b.id, d: Object.assign({ id: b.id, name: b.name, cashOpen: b.cashOpen || 0, gpayOpen: b.gpayOpen || 0, _o: b._o }, b.kind == 'firm' ? { kind: 'firm' } : {}) }));
     SH_ARR.forEach(k =>
       (b[k] || []).forEach(r => {
         if (r.id == null) r.id = uid();
