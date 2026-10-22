@@ -2518,7 +2518,7 @@ function vPar(b) {
     })
     .join('');
   return `<div class="card"><div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px"><div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:16px;width:100%"><div class="tabs" style="margin:0"><button class="b ${isC ? '' : 'g'}" onclick="PT='cust';R()">Customers</button><button class="b ${isC ? 'g' : ''}" onclick="PT='sup';R()">Suppliers</button></div><label class="swl"><span class="sw"><input type="checkbox" id="qt" role="switch" checked onchange="partySw()"><span class="tr"></span><span id="qtl">ON: firm / company (GST 18%, bank)</span></span></label><span>${INF('Keep the switch ON for a firm or company: GST 18% applies and payments go through a bank account. Turn it OFF for a person: no GST and payments are in cash or GPay. Invoices and purchases only search and select from this list.')}</span></div></div>
- <div class="row"><label>Name<input id="qn"></label><label id="qgl">GSTIN<input id="qg"></label><label>Phone<input id="qh"></label><label>Address<input id="qa"></label><label>${isC ? 'Opening balance they owe you (₹)' : 'Opening balance you owe them (₹)'}<input id="qo" type="number" min="0" step="0.01" value="0"></label><button class="b" onclick="addParty()">Add ${isC ? 'customer' : 'supplier'}</button></div><p id="qerr" style="color:var(--bad);margin:0"></p></div>
+ <div class="row"><label>Name<input id="qn"></label><label id="qgl">GSTIN (required for firms)<input id="qg"></label><label>Phone<input id="qh"></label><label>Address<input id="qa"></label><label>${isC ? 'Opening balance they owe you (₹)' : 'Opening balance you owe them (₹)'}<input id="qo" type="number" min="0" step="0.01" value="0"></label><button class="b" onclick="addParty()">Add ${isC ? 'customer' : 'supplier'}</button></div><p id="qerr" style="color:var(--bad);margin:0"></p></div>
  <div class="card"><h2>${isC ? 'Customers' : 'Suppliers'}</h2><div class="tw"><table><tr><th>Name</th><th>Type</th><th>GSTIN</th><th class="n">${isC ? 'Opening balance' : 'Purchased (incl. GST)'}</th>${isC ? '<th class="n">Outstanding</th>' : '<th class="n">Opening balance</th><th class="n">Balance payable</th>'}<th></th></tr>${rows || `<tr><td colspan=7>None yet. Add one above.</td></tr>`}</table></div></div>`;
 }
 function partySw() {
@@ -2534,6 +2534,8 @@ function addParty() {
   if (!n) return ($('#qerr').textContent = 'Enter a name.');
   const isC = PT == 'cust',
     arr = isC ? b.cust : b.sup;
+  if ($('#qt').checked && !$('#qg').value.trim())
+    return ($('#qerr').textContent = 'GSTIN is required for a firm or company.');
   if (arr.find(x => nk(x.name) == nk(n))) return ($('#qerr').textContent = 'This name already exists.');
   const p = {
     id: uid(),
@@ -2551,6 +2553,10 @@ function addParty() {
 function setParty(id, f, v) {
   const b = B(),
     p = (PT == 'cust' ? b.cust : b.sup).find(x => x.id == id);
+  if (f == 'gstin' && p.type != 'person' && !v.trim()) {
+    note('GSTIN is required for a firm or company.');
+    return R();
+  }
   p[f] = v.trim();
   save();
   R();
