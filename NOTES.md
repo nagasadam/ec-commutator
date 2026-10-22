@@ -178,3 +178,9 @@ Business E.C Commutators. Openings: HDFC Current ₹2,50,000, cash ₹30,000, GP
 - A device that never synced adopts the shared data, but any entries it held that the store lacks are saved aside (`booksmith10pend`) and a bar offers "Add them now" / "Discard". Never silently drop local entries.
 - When saving fails (`err`, `full`, `ro`) a red bar stays on top of the page. `beforeunload` warns while changes are unsaved; hiding the tab flushes at once; sign-out flushes first and asks before discarding.
 - Test with `loss2.py`-style scenarios: writes failing for device A, then A comes back after B seeded the store.
+
+## 14. Business type (firm / person)
+
+- `b.kind` = `'person'` (default, also for all older businesses) or `'firm'`, chosen in "Add business" (`#nk`). Synced in the `biz` record.
+- Firm based business: only firm/company customers and suppliers (GSTIN required), switch hidden, `addCust`/`addSup` force `company`, edit dialog has no Person option. Customer receipts and supplier payments are bank only; Cash/GPay are for expenses only.
+- Person based business behaves as before.

@@ -226,7 +226,7 @@ td .pkb{min-height:34px;padding:4px 30px 4px 9px;font-size:13px}
 <aside class="side">
  <div class="brand"><svg class="logo" viewBox="0 0 32 32" aria-hidden="true"><defs><linearGradient id="lg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f0a063"/><stop offset="1" stop-color="#b85a22"/></linearGradient></defs><g class="seg"><circle cx="16" cy="16" r="12" fill="none" stroke="url(#lg)" stroke-width="5" stroke-dasharray="4.1 1.6" transform="rotate(-90 16 16)"/></g><circle cx="16" cy="16" r="6" fill="none" stroke="currentColor" stroke-opacity=".35" stroke-width="1"/><circle cx="16" cy="16" r="2.6" fill="url(#lg)"/></svg><h1>Commutator Manufacturing</h1></div>
  <div class="biz"><div id="sync" class="sync" role="status"></div><label for="biz">Business</label><select id="biz" onchange="S.cur=this.value;D=D0();save();R()"></select>
-  <details class="bm" id="bm"><summary>Add business or reset</summary><div class="bmb"><input id="nb" placeholder="New business name" aria-label="New business name"><button class="b g" onclick="newBiz()">Add business</button><span id="rs"><button class="b g" onclick="askReset()">Reset all data</button></span></div></details></div>
+  <details class="bm" id="bm"><summary>Add business or reset</summary><div class="bmb"><input id="nb" placeholder="New business name" aria-label="New business name"><select id="nk" aria-label="Business type"><option value="person">Person based business</option><option value="firm">Firm based business</option></select><button class="b g" onclick="newBiz()">Add business</button><span id="rs"><button class="b g" onclick="askReset()">Reset all data</button></span></div></details></div>
  <nav id="nav" aria-label="Sections"></nav>
 </aside>
 <main class="main"><div class="ph" id="ph"></div><div id="m"></div></main><div id="toast" role="status"></div><div id="ov" role="dialog" aria-modal="true" aria-label="Invoice"></div>
@@ -317,11 +317,11 @@ function save() {
 const nk = n => String(n).trim().toLowerCase();
 function addCust(b, n, type) {
   if (!b.cust.find(c => nk(c.name) == nk(n)))
-    b.cust.push({ id: uid(), name: n.trim(), type, gstin: '', phone: '', addr: '' });
+    b.cust.push({ id: uid(), name: n.trim(), type: b.kind == 'firm' ? 'company' : type, gstin: '', phone: '', addr: '' });
 }
 function addSup(b, n, type) {
   if (!b.sup.find(c => nk(c.name) == nk(n)))
-    b.sup.push({ id: uid(), name: n.trim(), type: type || 'company', gstin: '', phone: '', addr: '' });
+    b.sup.push({ id: uid(), name: n.trim(), type: b.kind == 'firm' ? 'company' : type || 'company', gstin: '', phone: '', addr: '' });
 }
 const pg = p => (p.co === false ? 0 : 0.18);
 function nextNo(b, pf) {
@@ -333,6 +333,7 @@ function nextNo(b, pf) {
   );
 }
 function fixBiz(b) {
+  b.kind = b.kind == 'firm' ? 'firm' : 'person';
   b.cashOpen = b.cashOpen || 0;
   b.gpayOpen = b.gpayOpen || 0;
   b.sr = b.sr || [];
@@ -361,10 +362,11 @@ const guessType = n =>
     : 'person';
 
 /* ======== Business setup and default items ======== */
-function mk(name) {
+function mk(name, kind) {
   const b = {
     id: uid(),
     name,
+    kind: kind == 'firm' ? 'firm' : 'person',
     items: [],
     inv: [],
     banks: [],
@@ -649,7 +651,7 @@ function doReset() {
 function newBiz() {
   const n = $('#nb').value.trim();
   if (n) {
-    const b = mk(n);
+    const b = mk(n, $('#nk').value);
     items(b, 0);
     $('#nb').value = '';
     save();
@@ -2497,7 +2499,7 @@ function vPar(b) {
       return `<tr><td>${esc(p.name)}${p.phone || p.addr ? `<br><small style="color:var(--mut)">${esc([p.phone, p.addr].filter(Boolean).join(' · '))}</small>` : ''}</td><td>${p.type == 'person' ? 'Person' : 'Firm / company'}</td><td>${p.type == 'person' ? '—' : esc(p.gstin || '')}</td><td class="n">${fmt(tp)}</td><td class="n">${fmt(p.open || 0)}</td><td class="n">${fmt(-bl(id))}</td><td>${btn} ${ACT('Party', p.id)}</td></tr>`;
     })
     .join('');
-  return `<div class="card"><div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px"><div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:16px;width:100%"><div class="tabs" style="margin:0"><button class="b ${isC ? '' : 'g'}" onclick="PT='cust';R()">Customers</button><button class="b ${isC ? 'g' : ''}" onclick="PT='sup';R()">Suppliers</button></div><label class="swl"><span class="sw"><input type="checkbox" id="qt" role="switch" checked onchange="partySw()"><span class="tr"></span><span id="qtl">ON: firm / company (GST 18%, bank)</span></span></label><span>${INF('Keep the switch ON for a firm or company: GST 18% applies and payments go through a bank account. Turn it OFF for a person: no GST and payments are in cash or GPay. Invoices and purchases only search and select from this list.')}</span></div></div>
+  return `<div class="card"><div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px"><div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:16px;width:100%"><div class="tabs" style="margin:0"><button class="b ${isC ? '' : 'g'}" onclick="PT='cust';R()">Customers</button><button class="b ${isC ? 'g' : ''}" onclick="PT='sup';R()">Suppliers</button></div>${b.kind == 'firm' ? `<input type="checkbox" id="qt" checked hidden><span id="qtl" style="color:var(--mut)">Firm based business: only firms and companies can be added.</span>` : `<label class="swl"><span class="sw"><input type="checkbox" id="qt" role="switch" checked onchange="partySw()"><span class="tr"></span><span id="qtl">ON: firm / company (GST 18%, bank)</span></span></label>`}<span>${INF('Keep the switch ON for a firm or company: GST 18% applies and payments go through a bank account. Turn it OFF for a person: no GST and payments are in cash or GPay. Invoices and purchases only search and select from this list.')}</span></div></div>
  <div class="row"><label>Name<input id="qn"></label><label id="qgl">GSTIN (required for firms)<input id="qg"></label><label>Phone<input id="qh"></label><label>Address<input id="qa"></label><label>${isC ? 'Opening balance they owe you (₹)' : 'Opening balance you owe them (₹)'}<input id="qo" type="number" min="0" step="0.01" value="0"></label><button class="b" onclick="addParty()">Add ${isC ? 'customer' : 'supplier'}</button></div><p id="qerr" style="color:var(--bad);margin:0"></p></div>
  <div class="card"><h2>${isC ? 'Customers' : 'Suppliers'}</h2><div class="tw"><table><tr><th>Name</th><th>Type</th><th>GSTIN</th><th class="n">${isC ? 'Opening balance' : 'Purchased (incl. GST)'}</th>${isC ? '<th class="n">Outstanding</th>' : '<th class="n">Opening balance</th><th class="n">Balance payable</th>'}<th></th></tr>${rows || `<tr><td colspan=7>None yet. Add one above.</td></tr>`}</table></div></div>`;
 }
@@ -2514,6 +2516,7 @@ function addParty() {
   if (!n) return ($('#qerr').textContent = 'Enter a name.');
   const isC = PT == 'cust',
     arr = isC ? b.cust : b.sup;
+  if (b.kind == 'firm') $('#qt').checked = true;
   if ($('#qt').checked && !$('#qg').value.trim())
     return ($('#qerr').textContent = 'GSTIN is required for a firm or company.');
   if (arr.find(x => nk(x.name) == nk(n))) return ($('#qerr').textContent = 'This name already exists.');
@@ -2882,7 +2885,7 @@ function editParty(id) {
     p = (isC ? b.cust : b.sup).find(x => x.id == id);
   if (!p) return;
   const co = p.type != 'person';
-  mdl(`<h2>Edit ${isC ? 'customer' : 'supplier'}</h2><div class="row">${mf('Name', 'mn', p.name)}<label>Type<select id="mt" onchange="$('#mgl').style.display=this.value=='person'?'none':''"><option value="company" ${co ? 'selected' : ''}>Firm / company (GST)</option><option value="person" ${co ? '' : 'selected'}>Person (no GST, cash)</option></select></label><label id="mgl" style="${co ? '' : 'display:none'}">GSTIN<input id="mg" value="${esc(p.gstin || '')}"></label></div>
+  mdl(`<h2>Edit ${isC ? 'customer' : 'supplier'}</h2><div class="row">${mf('Name', 'mn', p.name)}<label>Type<select id="mt" onchange="$('#mgl').style.display=this.value=='person'?'none':''"><option value="company" ${co ? 'selected' : ''}>Firm / company (GST)</option>${B().kind == 'firm' ? '' : `<option value="person" ${co ? '' : 'selected'}>Person (no GST, cash)</option>`}</select></label><label id="mgl" style="${co ? '' : 'display:none'}">GSTIN<input id="mg" value="${esc(p.gstin || '')}"></label></div>
  <div class="row">${mf('Phone', 'mh', p.phone || '')}${mf('Address', 'ma', p.addr || '')}${mnum(isC ? 'Opening balance they owe you (₹)' : 'Opening balance you owe them (₹)', 'mo', p.open || 0, 'step="0.01"')}</div>${msave('saveParty', id)}`);
 }
 function saveParty(id) {
@@ -3157,7 +3160,7 @@ function shFlat() {
   const m = new Map();
   S.biz.forEach(b => {
     if (b._o == null) b._o = shStamp();
-    m.set('biz:' + b.id, shCj({ t: 'biz', b: b.id, d: { id: b.id, name: b.name, cashOpen: b.cashOpen || 0, gpayOpen: b.gpayOpen || 0, _o: b._o } }));
+    m.set('biz:' + b.id, shCj({ t: 'biz', b: b.id, d: { id: b.id, name: b.name, kind: b.kind || 'person', cashOpen: b.cashOpen || 0, gpayOpen: b.gpayOpen || 0, _o: b._o } }));
     SH_ARR.forEach(k =>
       (b[k] || []).forEach(r => {
         if (r.id == null) r.id = uid();
