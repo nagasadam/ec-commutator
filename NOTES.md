@@ -184,3 +184,7 @@ Business E.C Commutators. Openings: HDFC Current ₹2,50,000, cash ₹30,000, GP
 - `b.kind` = `'person'` (default, also for all older businesses) or `'firm'`, chosen in "Add business" (`#nk`). Synced in the `biz` record.
 - Firm based business: only firm/company customers and suppliers (GSTIN required), switch hidden, `addCust`/`addSup` force `company`, edit dialog has no Person option. Customer receipts and supplier payments are bank only; Cash/GPay are for expenses only.
 - Person based business behaves as before.
+
+## 15. Reset and delete a business
+
+- "Add, reset or delete business" panel: **Reset this business** (`doReset`) clears only the selected business (keeps id, name, type, default items); **Delete this business** (`doDel`) needs the business name typed and is refused for the only business. No owner gate; deletions sync through the normal flush diff.

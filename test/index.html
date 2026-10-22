@@ -238,7 +238,7 @@ td .pkb{min-height:34px;padding:4px 30px 4px 9px;font-size:13px}
 <aside class="side">
  <div class="brand"><svg class="logo" viewBox="0 0 32 32" aria-hidden="true"><defs><linearGradient id="lg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f0a063"/><stop offset="1" stop-color="#b85a22"/></linearGradient></defs><g class="seg"><circle cx="16" cy="16" r="12" fill="none" stroke="url(#lg)" stroke-width="5" stroke-dasharray="4.1 1.6" transform="rotate(-90 16 16)"/></g><circle cx="16" cy="16" r="6" fill="none" stroke="currentColor" stroke-opacity=".35" stroke-width="1"/><circle cx="16" cy="16" r="2.6" fill="url(#lg)"/></svg><h1>Commutator Manufacturing</h1></div>
  <div class="biz"><div id="sync" class="sync" role="status"></div><button id="fbout" class="b g" style="display:none" onclick="fbOut()">Sign out</button><label for="biz">Business</label><select id="biz" onchange="S.cur=this.value;D=D0();save();R()"></select>
-  <details class="bm" id="bm"><summary>Add business or reset</summary><div class="bmb"><input id="nb" placeholder="New business name" aria-label="New business name"><select id="nk" aria-label="Business type"><option value="person">Person based business</option><option value="firm">Firm based business</option></select><button class="b g" onclick="newBiz()">Add business</button><span id="rs"><button class="b g" onclick="askReset()">Reset all data</button></span></div></details></div>
+  <details class="bm" id="bm"><summary>Add, reset or delete business</summary><div class="bmb"><input id="nb" placeholder="New business name" aria-label="New business name"><select id="nk" aria-label="Business type"><option value="person">Person based business</option><option value="firm">Firm based business</option></select><button class="b g" onclick="newBiz()">Add business</button><span id="rs"><button class="b g" onclick="askReset()">Reset this business</button> <button class="b g" onclick="askDel()">Delete this business</button></span></div></details></div>
  <nav id="nav" aria-label="Sections"></nav>
 </aside>
 <main class="main"><div class="ph" id="ph"></div><div id="m"></div></main><div id="toast" role="status"></div><div id="ov" role="dialog" aria-modal="true" aria-label="Invoice"></div><div id="login" role="dialog" aria-modal="true" aria-label="Sign in"><div class="lgbg" aria-hidden="true"><svg viewBox="0 0 600 600" fill="none" stroke="currentColor"><g class="r1"><circle cx="300" cy="300" r="255" stroke-width="64" stroke-dasharray="60 6.8" opacity=".16"/><circle cx="300" cy="300" r="255" stroke-width="64" stroke-dasharray="60 1542" opacity=".4"/><circle cx="300" cy="300" r="255" stroke-width="64" stroke-dasharray="60 1542" stroke-dashoffset="-801" opacity=".3"/><animateTransform attributeName="transform" type="rotate" from="0 300 300" to="360 300 300" dur="90s" repeatCount="indefinite"/></g><g class="r2"><circle cx="300" cy="300" r="178" stroke-width="44" stroke-dasharray="46.6 4.5" opacity=".14"/><circle cx="300" cy="300" r="178" stroke-width="44" stroke-dasharray="46.6 1072" opacity=".42"/><circle cx="300" cy="300" r="178" stroke-width="44" stroke-dasharray="46.6 1072" stroke-dashoffset="-559.3" opacity=".3"/><animateTransform attributeName="transform" type="rotate" from="360 300 300" to="0 300 300" dur="60s" repeatCount="indefinite"/></g><g class="r3"><circle cx="300" cy="300" r="112" stroke-width="26" stroke-dasharray="40 5.4" opacity=".18"/><circle cx="300" cy="300" r="112" stroke-width="26" stroke-dasharray="40 664" opacity=".5"/><circle cx="300" cy="300" r="112" stroke-width="26" stroke-dasharray="40 664" stroke-dashoffset="-352" opacity=".36"/><animateTransform attributeName="transform" type="rotate" from="0 300 300" to="360 300 300" dur="36s" repeatCount="indefinite"/></g><circle cx="300" cy="300" r="62" stroke-width="2" opacity=".25"/><circle cx="300" cy="300" r="20" stroke-width="2" opacity=".25"/></svg></div><div class="card" id="lgc"><p style="margin:0;color:var(--mut)" role="status">Loading…</p></div></div>
@@ -642,21 +642,52 @@ $('#ov').addEventListener('click', e => {
 
 
 /* ======== Reset and business management ======== */
+const RSB = '<button class="b g" onclick="askReset()">Reset this business</button> <button class="b g" onclick="askDel()">Delete this business</button>',
+  BAD = 'background:var(--bad);border-color:var(--bad);color:#fff';
 function askReset() {
-  if (SH.db && !SH.owner) {
-    $('#rs').innerHTML = '<span style="color:var(--mut)">Only the owner can reset shared data.</span>';
+  $('#rs').innerHTML =
+    `<span style="color:var(--bad)">Erase all entries of ${esc(B().name)}? Other businesses are not touched.</span> <button class="b" style="${BAD}" onclick="doReset()">Yes, reset ${esc(B().name)}</button> <button class="b g" onclick="cancelReset()">Cancel</button>`;
+}
+function cancelReset() {
+  $('#rs').innerHTML = RSB;
+}
+function doReset() {
+  const o = B(),
+    i = S.biz.indexOf(o),
+    n = mk(o.name, o.kind);
+  S.biz.pop();
+  n.id = o.id;
+  n._o = o._o;
+  S.biz[i] = n;
+  S.cur = n.id;
+  items(n, 0);
+  D = D0();
+  tab = 'inv';
+  bankSel = '';
+  cgSel = '';
+  payInv = '';
+  payPur = '';
+  LG = { id: '', from: '', to: '' };
+  save();
+  cancelReset();
+  R();
+}
+function askDel() {
+  if (S.biz.length < 2) {
+    $('#rs').innerHTML = '<span style="color:var(--mut)">This is the only business. Add another one before deleting it.</span> <button class="b g" onclick="cancelReset()">OK</button>';
     return;
   }
   $('#rs').innerHTML =
-    '<span style="color:var(--bad)">Delete every business and entry? This clears the shared data for everyone.</span> <button class="b" style="background:var(--bad);border-color:var(--bad);color:#fff" onclick="doReset()">Yes, delete all</button> <button class="b g" onclick="cancelReset()">Cancel</button>';
+    `<span style="color:var(--bad)">Delete ${esc(B().name)} and everything in it? Type its name to confirm.</span> <input id="dn" placeholder="Business name" aria-label="Type the business name"> <button class="b" style="${BAD}" onclick="doDel()">Delete business</button> <button class="b g" onclick="cancelReset()">Cancel</button>`;
 }
-function cancelReset() {
-  $('#rs').innerHTML = '<button class="b g" onclick="askReset()">Reset all data</button>';
-}
-function doReset() {
-  S = { biz: [], cur: '' };
-  const b = mk('E.C');
-  items(b, 0);
+function doDel() {
+  const b = B();
+  if (nk($('#dn').value) != nk(b.name)) {
+    $('#dn').style.borderColor = 'var(--bad)';
+    return;
+  }
+  S.biz = S.biz.filter(x => x.id != b.id);
+  S.cur = S.biz[0].id;
   D = D0();
   tab = 'inv';
   bankSel = '';
