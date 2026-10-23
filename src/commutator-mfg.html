@@ -239,6 +239,17 @@ td .pkb{min-height:34px;padding:4px 30px 4px 9px;font-size:13px}
 .kpis>div:hover{transform:translateY(-3px);border-color:var(--ring);box-shadow:var(--sh),0 10px 28px -12px var(--ring)}
 .kpis>div::before{content:'';position:absolute;top:0;bottom:0;width:40%;left:0;background:linear-gradient(100deg,transparent,rgba(255,255,255,.09),transparent);transform:translateX(-120%);pointer-events:none}
 .kpis>div:hover::before{animation:fxsheen .9s ease}
+/* save confirmation */
+@keyframes svin{0%{opacity:0;transform:translate(-50%,16px) scale(.9)}15%{opacity:1;transform:translate(-50%,0) scale(1)}85%{opacity:1;transform:translate(-50%,0) scale(1)}100%{opacity:0;transform:translate(-50%,10px) scale(.96)}}
+@keyframes svck{from{stroke-dashoffset:24}to{stroke-dashoffset:0}}
+@keyframes svring{0%{transform:scale(.6);opacity:.7}100%{transform:scale(2.1);opacity:0}}
+@keyframes svpill{0%{box-shadow:0 0 0 0 rgba(52,199,89,.65)}100%{box-shadow:0 0 0 14px rgba(52,199,89,0)}}
+#svfx{position:fixed;left:50%;bottom:26px;z-index:150;display:flex;align-items:center;gap:10px;padding:9px 16px 9px 10px;border-radius:999px;background:var(--card);border:1px solid rgba(52,199,89,.55);color:var(--ink);font:600 13px system-ui,sans-serif;box-shadow:0 10px 30px -10px rgba(0,0,0,.6),0 0 22px -6px rgba(52,199,89,.55);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);animation:svin 2.1s cubic-bezier(.2,.7,.2,1) both;pointer-events:none}
+#svfx i{position:relative;width:24px;height:24px;border-radius:50%;background:#34c759;display:grid;place-items:center}
+#svfx i::before{content:'';position:absolute;inset:0;border-radius:50%;border:2px solid #34c759;animation:svring .9s ease-out .1s both}
+#svfx svg{width:15px;height:15px;stroke:#fff;fill:none;stroke-width:3;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:24}
+#svfx svg path{animation:svck .45s cubic-bezier(.4,.1,.2,1) .15s both}
+.sync.svd{animation:svpill .9s ease-out}
 @media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 @media(prefers-reduced-motion:reduce){.logo .seg{animation:orbit 12s linear infinite!important}}
 @media print{:root:root:root{--bg:#fff;--bg2:#fff;--card:#fff;--ink:#000;--mut:#333;--line:#bbb;--muted:#f2f2f2;--accsoft:#eee;--sh:none;--edge:none}body{display:block;background:#fff!important;color:#000}body>*:not(#ov){display:none}.inf,#tip,#cht{display:none!important}.pkpop{display:none}#ov{position:static;background:none;display:block;padding:0;backdrop-filter:none}#ov .card{box-shadow:none;border:0;margin:0;background:#fff}.card::before{display:none}.noprint{display:none}}
@@ -326,10 +337,33 @@ function load() {
     ].forEach(k => localStorage.removeItem(k));
   } catch (e) {}
 }
+let SVT = 0;
+function saveFx(msg) {
+  let e = $('#svfx');
+  if (e) e.remove();
+  e = document.createElement('div');
+  e.id = 'svfx';
+  e.setAttribute('role', 'status');
+  e.innerHTML = '<i><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></i>' + esc(msg);
+  document.body.appendChild(e);
+  clearTimeout(SVT);
+  SVT = setTimeout(() => e.remove(), 2200);
+  const p = $('#sync');
+  if (p) {
+    p.classList.remove('svd');
+    void p.offsetWidth;
+    p.classList.add('svd');
+  }
+}
+let SVL = 0;
 function save() {
   try {
     localStorage.setItem('booksmith10', JSON.stringify(S));
   } catch (e) {}
+  if (!SH.db) {
+    clearTimeout(SVL);
+    SVL = setTimeout(() => saveFx('Saved on this device'), 350);
+  }
   shSchedule();
 }
 
@@ -3499,6 +3533,7 @@ async function shFlush() {
     return;
   }
   SH.busy = true;
+  let did = 0;
   try {
     do {
       SH.again = false;
@@ -3510,6 +3545,7 @@ async function shFlush() {
       if (!SH.seen) SH.seen = new Set(cur.keys());
       for (const id of [...SH.known.keys()])
         if (!cur.has(id) && SH.seen.has(id)) todo.push(() => shTry(() => SH.db.doc('rec/' + id).delete()).then(() => SH.known.delete(id)));
+      did += todo.length;
       shLog('flush ops=' + todo.length + ' local=' + cur.size + ' known=' + SH.known.size + ' del=' + [...SH.known.keys()].filter(i => !cur.has(i)).length);
       SH.seen = new Set(cur.keys());
       for (let i = 0; i < todo.length; i += 6) {
@@ -3519,6 +3555,7 @@ async function shFlush() {
     } while (SH.again || shDiffers());
     shStat('live');
     shLog('flush done');
+    if (did) saveFx('Saved · shared with everyone');
   } catch (e) {
     shLog('flush failed ' + (e && e.code) + ' ' + (e && e.message));
     shFail(e);
