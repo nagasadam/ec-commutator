@@ -375,12 +375,17 @@ function saveFx(msg) {
     p.classList.add('svd');
   }
 }
-let SVL = 0;
+let SVL = 0,
+  SVU = 0,
+  SVW = false;
+['pointerdown', 'keydown', 'change'].forEach(ev => addEventListener(ev, e => e.isTrusted && (SVU = Date.now()), true));
 function save() {
   try {
     localStorage.setItem('ectest10', JSON.stringify(S));
   } catch (e) {}
-  if (!SH.db) {
+  const mine = Date.now() - SVU < 8000; // only saves that follow something the person did
+  if (mine) SVW = true;
+  if (!SH.db && mine) {
     clearTimeout(SVL);
     SVL = setTimeout(() => saveFx('Saved'), 350);
   }
@@ -3575,7 +3580,8 @@ async function shFlush() {
     } while (SH.again || shDiffers());
     shStat('live');
     shLog('flush done');
-    if (did) saveFx('Saved');
+    if (did && SVW) saveFx('Saved');
+    SVW = false;
   } catch (e) {
     shLog('flush failed ' + (e && e.code) + ' ' + (e && e.message));
     shFail(e);
