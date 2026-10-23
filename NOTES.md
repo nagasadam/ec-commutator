@@ -194,3 +194,5 @@ Business E.C Commutators. Openings: HDFC Current ₹2,50,000, cash ₹30,000, GP
 
 - `fxRun()` (called from `R()`) adds class `fx` to `#m` only when the screen/report/business changes, so animations play on opening a screen and not on every save. KPI cards rise and count up, bars/lines/horizontal bars draw in, cards lift on hover. All CSS sits above the reduced-motion rule, which disables it.
 - Save confirmation: `saveFx(msg)` shows a green animated tick pill at the bottom and pulses the status pill. Local mode fires from `save()` (debounced), shared mode fires when `shFlush` finishes having written something.
+
+- Header logo ring rotates through SVG `animateTransform` (SMIL) inside `.logo .seg`, so no CSS rule (including prefers-reduced-motion) can stop it. The CSS `spin` intro stays on `.seg`.

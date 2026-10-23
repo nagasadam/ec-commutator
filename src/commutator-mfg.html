@@ -15,7 +15,7 @@ body{margin:0;color:var(--ink);font:14.5px/1.55 'Sora',system-ui,-apple-system,'
 .side{position:sticky;top:0;height:100vh;overflow-y:auto;background:var(--card);-webkit-backdrop-filter:blur(18px) saturate(1.2);backdrop-filter:blur(18px) saturate(1.2);border-right:1px solid var(--line);padding:max(22px,env(safe-area-inset-top)) 14px 20px;display:flex;flex-direction:column;gap:20px}
 .brand{display:flex;align-items:center;gap:12px;padding:0 8px}
 .logo{width:40px;height:40px;flex:none;filter:drop-shadow(0 0 10px var(--glow))}
-.logo .seg{animation:spin 1.6s cubic-bezier(.2,.7,.2,1) both,orbit 12s linear 1.6s infinite;transform-origin:16px 16px}
+.logo .seg{animation:spin 1.6s cubic-bezier(.2,.7,.2,1) both;transform-origin:16px 16px}
 @keyframes orbit{to{transform:rotate(360deg)}}
 @keyframes spin{from{transform:rotate(-200deg);opacity:0}to{transform:rotate(0);opacity:1}}
 h1{font-size:14.5px;line-height:1.25;margin:0;font-weight:700;letter-spacing:-.01em}
@@ -251,11 +251,10 @@ td .pkb{min-height:34px;padding:4px 30px 4px 9px;font-size:13px}
 #svfx svg path{animation:svck .45s cubic-bezier(.4,.1,.2,1) .15s both}
 .sync.svd{animation:svpill .9s ease-out}
 @media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
-@media(prefers-reduced-motion:reduce){.logo .seg{animation:orbit 12s linear infinite!important}}
 @media print{:root:root:root{--bg:#fff;--bg2:#fff;--card:#fff;--ink:#000;--mut:#333;--line:#bbb;--muted:#f2f2f2;--accsoft:#eee;--sh:none;--edge:none}body{display:block;background:#fff!important;color:#000}body>*:not(#ov){display:none}.inf,#tip,#cht{display:none!important}.pkpop{display:none}#ov{position:static;background:none;display:block;padding:0;backdrop-filter:none}#ov .card{box-shadow:none;border:0;margin:0;background:#fff}.card::before{display:none}.noprint{display:none}}
 </style></head><body>
 <aside class="side">
- <div class="brand"><svg class="logo" viewBox="0 0 32 32" aria-hidden="true"><defs><linearGradient id="lg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f0a063"/><stop offset="1" stop-color="#b85a22"/></linearGradient></defs><g class="seg"><circle cx="16" cy="16" r="12" fill="none" stroke="url(#lg)" stroke-width="5" stroke-dasharray="4.1 1.6" transform="rotate(-90 16 16)"/></g><circle cx="16" cy="16" r="6" fill="none" stroke="currentColor" stroke-opacity=".35" stroke-width="1"/><circle cx="16" cy="16" r="2.6" fill="url(#lg)"/></svg><h1>Commutator Manufacturing</h1></div>
+ <div class="brand"><svg class="logo" viewBox="0 0 32 32" aria-hidden="true"><defs><linearGradient id="lg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f0a063"/><stop offset="1" stop-color="#b85a22"/></linearGradient></defs><g class="seg"><g><animateTransform attributeName="transform" type="rotate" from="0 16 16" to="360 16 16" dur="9s" repeatCount="indefinite"/><circle cx="16" cy="16" r="12" fill="none" stroke="url(#lg)" stroke-width="5" stroke-dasharray="4.1 1.6" transform="rotate(-90 16 16)"/></g></g><circle cx="16" cy="16" r="6" fill="none" stroke="currentColor" stroke-opacity=".35" stroke-width="1"/><circle cx="16" cy="16" r="2.6" fill="url(#lg)"/></svg><h1>Commutator Manufacturing</h1></div>
  <div class="biz"><div id="sync" class="sync" role="status"></div><label for="biz">Business</label><select id="biz" onchange="S.cur=this.value;D=D0();save();R()"></select>
   <details class="bm" id="bm"><summary>Add, reset or delete business</summary><div class="bmb"><input id="nb" placeholder="New business name" aria-label="New business name"><select id="nk" aria-label="Business type"><option value="person">Person based business</option><option value="firm">Firm based business</option></select><button class="b g" onclick="newBiz()">Add business</button><span id="rs"><button class="b g" onclick="askReset()">Reset this business</button> <button class="b g" onclick="askDel()">Delete this business</button></span></div></details></div>
  <nav id="nav" aria-label="Sections"></nav>
