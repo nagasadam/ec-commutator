@@ -231,6 +231,26 @@ td .pkb{min-height:34px;padding:4px 30px 4px 9px;font-size:13px}
  .row>label{flex:1 1 100%}.row>label[style]{flex:1 1 40%!important}
  #ov{padding:12px}
 }
+/* dashboard motion: plays when a screen is opened, not on every save */
+@keyframes fxrise{from{opacity:0;transform:translateY(14px) scale(.98)}to{opacity:1;transform:none}}
+@keyframes fxline{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+@keyframes fxy{from{transform:scaleY(0)}to{transform:scaleY(1)}}
+@keyframes fxx{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+@keyframes fxdraw{to{stroke-dashoffset:0}}
+@keyframes fxpop{from{opacity:0;transform:scale(0)}to{opacity:1;transform:scale(1)}}
+@keyframes fxsheen{from{transform:translateX(-120%)}to{transform:translateX(220%)}}
+.fx .kpis>div{animation:fxrise .6s cubic-bezier(.2,.7,.2,1) both}
+.fx .kpis>div:nth-child(2){animation-delay:.07s}.fx .kpis>div:nth-child(3){animation-delay:.14s}.fx .kpis>div:nth-child(4){animation-delay:.21s}.fx .kpis>div:nth-child(5){animation-delay:.28s}.fx .kpis>div:nth-child(6){animation-delay:.35s}.fx .kpis>div:nth-child(7){animation-delay:.42s}
+.fx .kpis>div::after{transform-origin:left;animation:fxline .9s cubic-bezier(.2,.7,.2,1) .25s both}
+.fx>.card,.fx>.tw,.fx>p{animation:fxrise .55s cubic-bezier(.2,.7,.2,1) .15s both}
+.fx .bar{transform-box:fill-box;transform-origin:50% 100%;animation:fxy .75s cubic-bezier(.2,.8,.2,1) both;animation-delay:calc(.25s + var(--k,0)*45ms)}
+.fx .ln{stroke-dasharray:1;stroke-dashoffset:1;animation:fxdraw 1.3s cubic-bezier(.4,.1,.2,1) .25s forwards}
+.fx .dt{transform-box:fill-box;transform-origin:center;animation:fxpop .4s cubic-bezier(.3,1.6,.5,1) both;animation-delay:calc(.9s + var(--k,0)*50ms)}
+.fx .hb .t b{transform-origin:left;animation:fxx .9s cubic-bezier(.2,.8,.2,1) .3s both}
+.kpis>div{transition:transform .25s cubic-bezier(.2,.7,.2,1),box-shadow .25s,border-color .25s}
+.kpis>div:hover{transform:translateY(-3px);border-color:var(--ring);box-shadow:var(--sh),0 10px 28px -12px var(--ring)}
+.kpis>div::before{content:'';position:absolute;top:0;bottom:0;width:40%;left:0;background:linear-gradient(100deg,transparent,rgba(255,255,255,.09),transparent);transform:translateX(-120%);pointer-events:none}
+.kpis>div:hover::before{animation:fxsheen .9s ease}
 @media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 @media(prefers-reduced-motion:reduce){.logo .seg{animation:orbit 12s linear infinite!important}}
 @media print{:root:root:root{--bg:#fff;--bg2:#fff;--card:#fff;--ink:#000;--mut:#333;--line:#bbb;--muted:#f2f2f2;--accsoft:#eee;--sh:none;--edge:none}body{display:block;background:#fff!important;color:#000}body>*:not(#ov){display:none}.inf,#tip,#cht{display:none!important}.pkpop{display:none}#ov{position:static;background:none;display:block;padding:0;backdrop-filter:none}#ov .card{box-shadow:none;border:0;margin:0;background:#fff}.card::before{display:none}.noprint{display:none}}
@@ -576,6 +596,28 @@ const NAVS = [
   ['led', 'Ledgers', 'Balances for every account, with downloadable statements.'],
   ['bank', 'Banking', 'Receive customer payments and review bank, cash and GPay statements.']
 ];
+let FXK = '';
+function fxRun() {
+  const k = tab + '|' + (tab == 'rep' ? rep : '') + '|' + S.cur,
+    m = $('#m'),
+    fresh = k != FXK;
+  FXK = k;
+  m.classList.toggle('fx', fresh);
+  if (!fresh || matchMedia('(prefers-reduced-motion:reduce)').matches) return;
+  m.querySelectorAll('.kpis b').forEach((e, i) => {
+    const t = e.textContent.trim();
+    if (!/^-?₹[\d,]+\.\d\d$/.test(t)) return;
+    const to = parseFloat(t.replace(/[₹,]/g, '')),
+      t0 = performance.now() + 150 + i * 70;
+    e.textContent = fmt(0);
+    const step = now => {
+      const p = Math.min(Math.max((now - t0) / 1000, 0), 1);
+      e.textContent = fmt(to * (1 - Math.pow(1 - p, 3)));
+      if (p < 1) requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
+  });
+}
 function R() {
   SH.dirty = false;
   const tabL = [...document.querySelectorAll('#m .tabs')].map(e => e.scrollLeft);
@@ -603,6 +645,7 @@ function R() {
     led: vLed,
     bank: vBank
   }[tab](B());
+  fxRun();
   document
     .querySelectorAll('#m [id$=err],#m #dlm,#m #ugn')
     .forEach(e => e.setAttribute('aria-live', 'polite'));
@@ -1466,7 +1509,7 @@ function chBars(rows, ser, fmtV) {
     ser.forEach((x, j) => {
       const h = sc(0) - sc(r[x.k]),
         bx = cx - tw / 2 + j * (bw + 2);
-      g += `<path d="${topR(bx, sc(r[x.k]), bw, Math.max(h, r[x.k] > 0 ? 2 : 0), 4)}" fill="${x.c}"/>`;
+      g += `<path class="bar" style="--k:${i}" d="${topR(bx, sc(r[x.k]), bw, Math.max(h, r[x.k] > 0 ? 2 : 0), 4)}" fill="${x.c}"/>`;
     });
     g += `<rect x="${cx - gw / 2}" y="${T}" width="${gw}" height="${ph}" fill="transparent" data-ct="${esc(tipTxt)}"/>`;
   });
@@ -1490,11 +1533,11 @@ function chLine(rows, key, c, name) {
   for (let v = nz.lo; v <= nz.hi + 1e-9; v += nz.st)
     g += `<line x1="${L}" x2="${W - R}" y1="${sc(v)}" y2="${sc(v)}" stroke="var(--line)"/><text x="${L - 6}" y="${sc(v) + 4}" text-anchor="end">${fmtC(v)}</text>`;
   g += `<line x1="${L}" x2="${W - R}" y1="${sc(0)}" y2="${sc(0)}" stroke="var(--mut)" opacity=".55"/>`;
-  g += `<path d="${rows.map((r, i) => (i ? 'L' : 'M') + xs(i) + ',' + sc(r[key])).join('')}" fill="none" stroke="${c}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>`;
+  g += `<path d="${rows.map((r, i) => (i ? 'L' : 'M') + xs(i) + ',' + sc(r[key])).join('')}" fill="none" stroke="${c}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" class="ln" pathLength="1"/>`;
   const every = Math.ceil(rows.length / Math.max(2, Math.floor(pw / 46)));
   rows.forEach((r, i) => {
     if (i % every == 0 || i == rows.length - 1) g += `<text x="${xs(i)}" y="${H - 6}" text-anchor="middle">${mlab(r.k)}</text>`;
-    g += `<circle cx="${xs(i)}" cy="${sc(r[key])}" r="4" fill="${c}" stroke="var(--bg2)" stroke-width="2"/>`;
+    g += `<circle class="dt" style="--k:${i}" cx="${xs(i)}" cy="${sc(r[key])}" r="4" fill="${c}" stroke="var(--bg2)" stroke-width="2"/>`;
     g += `<circle cx="${xs(i)}" cy="${sc(r[key])}" r="16" fill="transparent" data-ct="${esc(`<b>${mlab(r.k)}</b><br><span style="color:${c}">●</span> ${name}: ${fmt(r[key])}`)}"/>`;
   });
   return `<svg viewBox="0 0 ${W} ${H}" role="img">${g}</svg>`;

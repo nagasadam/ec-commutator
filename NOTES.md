@@ -189,3 +189,7 @@ Business E.C Commutators. Openings: HDFC Current ₹2,50,000, cash ₹30,000, GP
 
 - "Add, reset or delete business" panel: **Reset this business** (`doReset`) clears only the selected business (keeps id, name, type, default items); **Delete this business** (`doDel`) needs the business name typed and is refused for the only business. No owner gate; deletions sync through the normal flush diff.
 - Sync gotcha: the `biz` record only carries `kind` when it is `firm`. Writing `kind:person` made a tab still running an older build rewrite the record every few seconds (endless "Saving changes"). Any new field on the biz record must be omitted when default, or old tabs will ping-pong with new ones.
+
+## 15. Dashboard motion
+
+- `fxRun()` (called from `R()`) adds class `fx` to `#m` only when the screen/report/business changes, so animations play on opening a screen and not on every save. KPI cards rise and count up, bars/lines/horizontal bars draw in, cards lift on hover. All CSS sits above the reduced-motion rule, which disables it.
